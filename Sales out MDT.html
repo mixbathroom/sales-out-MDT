@@ -422,11 +422,11 @@ const ColorNum = ({
 }) => {
   const v = parseFloat(val) || 0;
   const colorClass = v > 0.001 ? "text-emerald-600" : v < -0.001 ? "text-rose-600" : "text-slate-400";
-  const prefix = showPlus && v > 0.001 ? "+" : "";
+  const arrow = v > 0.001 ? "▲ " : v < -0.001 ? "▼ " : "";
   const suffix = isPts ? " pts" : "";
   return /*#__PURE__*/React.createElement("span", {
     className: `font-medium ${colorClass}`
-  }, prefix, formatFn(v), suffix);
+  }, arrow, formatFn(Math.abs(v)), suffix);
 };
 const extractPcValue = (row, type) => {
   if (!row) return null;
@@ -1861,10 +1861,11 @@ function App() {
     } else if (type === 'red') {
       colorClass = diff > 0 ? isDark ? "text-rose-400" : "text-rose-500" : isDark ? "text-emerald-400" : "text-emerald-500";
     }
-    const sign = diff > 0 ? '+' : '';
+    const arrow = diff > 0 ? '▲ ' : '▼ ';
+    const absDiff = Math.abs(diff);
     return /*#__PURE__*/React.createElement("span", {
       className: `${textSize} font-black leading-none ${colorClass}`
-    }, sign, diff);
+    }, arrow, absDiff);
   };
   const getPcCell = (model, actual) => {
     const diff = model - actual;
@@ -2261,29 +2262,29 @@ function App() {
     }, title), /*#__PURE__*/React.createElement("div", {
       className: "flex-1 bg-white overflow-hidden flex flex-col justify-start"
     }, /*#__PURE__*/React.createElement("table", {
-      className: "w-full h-full text-left border-collapse"
+      className: "w-full h-full text-left border-collapse table-fixed"
     }, /*#__PURE__*/React.createElement("thead", {
       className: `bg-[#003876] text-white ${scale.th} h-[1px]`
     }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
-      className: "font-bold text-center w-24"
+      className: "font-bold text-center w-[4%]"
     }, "\u0E25\u0E33\u0E14\u0E31\u0E1A"), /*#__PURE__*/React.createElement("th", {
-      className: "font-bold"
+      className: "font-bold w-[11%] pl-2"
     }, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
-    }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
+      className: "text-right w-[14%] pr-3"
     }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21 (YTD)"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
+      className: "text-right w-[14%] pr-3"
+    }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
+      className: "text-right w-[7%] pr-2"
     }, "% \u0E42\u0E15"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
-    }, "MS% \u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right w-28"
+      className: "text-right w-[10%] pr-2"
     }, "MS% \u0E1B\u0E35\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
+      className: "text-right w-[10%] pr-2"
+    }, "MS% \u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
+      className: "text-right w-[9%] pr-2"
     }, "Change"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
+      className: "text-right w-[11%] pr-2"
     }, "\u0E08\u0E33\u0E19\u0E27\u0E19 PC"), /*#__PURE__*/React.createElement("th", {
-      className: "text-right"
+      className: "text-right w-[10%] pr-3"
     }, "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22/PC/\u0E40\u0E14\u0E37\u0E2D\u0E19"))), /*#__PURE__*/React.createElement("tbody", {
       className: "divide-y"
     }, brands.map((b, index) => /*#__PURE__*/React.createElement("tr", {
@@ -2292,49 +2293,37 @@ function App() {
     }, /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-center font-bold text-slate-400`
     }, b.brand === 'อื่นๆ' ? '-' : index + 1), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} flex items-center h-full min-h-[40px] gap-2`
-    }, /*#__PURE__*/React.createElement("div", {
-      className: `${scale.dot} rounded-full shadow-sm`,
+      className: `${scale.td} pl-2`
+    }, /*#__PURE__*/React.createElement("div", {className: "flex items-center gap-2"}, /*#__PURE__*/React.createElement("div", {
+      className: `${scale.dot} rounded-full shadow-sm flex-shrink-0`,
       style: {
         backgroundColor: BRAND_COLORS[b.brand] || '#ccc'
       }
-    }), b.brand), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right text-slate-500`
-    }, formatNum(b.lsY)), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right text-[#003876]`
+    }), b.brand)), /*#__PURE__*/React.createElement("td", {
+      className: `${scale.td} text-right pr-3 text-slate-500`
     }, formatNum(b.csY)), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right`
+      className: `${scale.td} text-right pr-3 text-slate-500`
+    }, formatNum(b.lsY)), /*#__PURE__*/React.createElement("td", {
+      className: `${scale.td} text-right pr-2`
     }, /*#__PURE__*/React.createElement(ColorNum, {
       val: b.gY,
       formatFn: formatPctStr,
       showPlus: true
     })), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right text-slate-500`
+      className: `${scale.td} text-right pr-2 text-[#003876]`
+    }, formatPctStr(b.cmsY)), /*#__PURE__*/React.createElement("td", {
+      className: `${scale.td} text-right pr-2 text-slate-500`
     }, formatPctStr(b.lmsY)), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td}`
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center justify-end gap-1.5 w-full"
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "text-right w-10"
-    }, formatPctStr(b.cmsY)), /*#__PURE__*/React.createElement("div", {
-      className: `w-10 ${scale.bar} bg-slate-200 rounded-full overflow-hidden hidden sm:block`
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "h-full rounded-full",
-      style: {
-        width: `${Math.min(b.cmsY, 100)}%`,
-        backgroundColor: BRAND_COLORS[b.brand] || '#ccc'
-      }
-    })))), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right`
+      className: `${scale.td} text-right pr-2`
     }, /*#__PURE__*/React.createElement(ColorNum, {
       val: b.cmsY - b.lmsY,
       formatFn: formatFloat,
       showPlus: true,
       isPts: true
     })), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right text-[#005AAB]`
+      className: `${scale.td} text-right pr-2 text-[#005AAB]`
     }, b.brand === 'Beger' ? pcCount : '-'), /*#__PURE__*/React.createElement("td", {
-      className: `${scale.td} text-right text-[#005AAB]`
+      className: `${scale.td} text-right pr-3 text-[#005AAB]`
     }, b.brand === 'Beger' && pcCount > 0 && numMonths > 0 ? `฿${formatNum(b.csY / pcCount / numMonths)}` : '-')))))), /*#__PURE__*/React.createElement("div", {
       className: `${scale.foot} border-t flex flex-row justify-between items-center flex-shrink-0 ${isWin ? 'bg-emerald-50' : 'bg-rose-50'} rounded-b-md overflow-hidden`
     }, /*#__PURE__*/React.createElement("div", {
