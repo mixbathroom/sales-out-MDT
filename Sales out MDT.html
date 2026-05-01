@@ -386,6 +386,18 @@ const {
   Pie,
   Cell
 } = Recharts;
+// ── DoHome Sub-filter: branch name → type mapping ──
+// Dynamic DoHome branch type detection (รองรับสาขาใหม่อัตโนมัติ)
+// - มีคำว่า "DH"              → DH XL
+// - มีคำว่า "Togo" หรือ "To go" → To go
+// - นอกนั้น (DoHome ทั้งหมด)   → มารีนสตูดิโอ
+function getDoHomeType(branch) {
+  if (!branch) return undefined;
+  const b = branch.trim();
+  if (b.includes('DH')) return 'XL';
+  if (/togo|to go/i.test(b)) return 'Togo';
+  return 'Marine';
+}
 const MOCK_CSV_DATA = `PC Sup,จังหวัด,รหัสห้าง,Code ID,SAP,Name,สาขา,Month,Year,เป้าการขาย,Beger,Toa,ICI,Jotun,Captain,Nippon,RTB,Delta,Turbo,Pammastic,JBP,Sunke,Woodtect,Iloft,Loft8,TPI,Worldpaint, Total ,ภูมิภาค,ModelPC,ActualPC,MissingPC
 คุณปุ๊ก อรพิน,นนทบุรี,S002,HP0011,1103532,Homepro,HP รัตนาธิเบศร์,Jan,2024,130000,188178.34,197537,0,26789,332,49053,0,1143,0,0,59970,0,0,0,0,0,0,523002.34,ภาคกลาง,,,
 คุณแจม สุกฤตา,กรุงเทพมหานคร,S083,HP0109,1103439,Homepro,HP พระราม3,Jan,2024,550000,584030.9,1814738,233000,357000,236511,218989,228493,122228,0,0,203000,0,0,0,0,0,0,3997989,กรุงเทพมหานคร,,,
@@ -631,6 +643,7 @@ function App() {
   const [selectedMalls, setSelectedMalls] = useState([]);
   const [selectedBranches, setSelectedBranches] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
+  const [selectedDoHomeType, setSelectedDoHomeType] = useState(null); // null|'XL'|'Togo'|'Marine'
   const [selectedColorGroup, setSelectedColorGroup] = useState('All');
   const [mapTooltip, setMapTooltip] = useState(null);
   const [showProvinceTable, setShowProvinceTable] = useState(true);
@@ -715,6 +728,7 @@ function App() {
       setSelectedMalls([]);
       setSelectedBranches([]);
       setSelectedSizes([]);
+      setSelectedDoHomeType(null);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -738,8 +752,13 @@ function App() {
     return map;
   }, [data, selectedYear]);
   const currentFiltered = useMemo(() => {
-    return data.filter(d => (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) && (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) && (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])));
-  }, [data, selectedMalls, selectedBranches, selectedSizes, branchSizeMap]);
+    return data.filter(d =>
+      (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) &&
+      (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) &&
+      (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])) &&
+      (selectedDoHomeType === null || getDoHomeType(d.สาขา) === selectedDoHomeType)
+    );
+  }, [data, selectedMalls, selectedBranches, selectedSizes, branchSizeMap, selectedDoHomeType]);
   const filterOptions = useMemo(() => {
     const years = [...new Set(data.map(d => d.Year))].filter(Boolean).sort().reverse();
     const months = MONTH_ORDER.filter(m => data.some(d => d.Month === m));
@@ -755,8 +774,13 @@ function App() {
     };
   }, [data, selectedMalls]);
   const displayMall = selectedMalls.length === 0 ? 'ภาพรวม Modern Trade' : selectedMalls.length === 1 ? selectedMalls[0] : `หลายห้าง Modern Trade (${selectedMalls.length})`;
+  const displayDoHomeTypeText = selectedDoHomeType === null ? '' : selectedDoHomeType === 'XL' ? ' [DH XL]' : selectedDoHomeType === 'Togo' ? ' [To go]' : ' [มารีนสตูดิโอ]';
   const displaySizeText = selectedSizes.length === 0 ? '' : ` (ไซส์ ${selectedSizes.join(', ')})`;
   const displayBranchText = selectedBranches.length === 0 ? '' : selectedBranches.length === 1 ? ` (สาขา ${selectedBranches[0]})` : ` (หลายสาขา)`;
+  const MONTH_TH = { Jan:'มกราคม', Feb:'กุมภาพันธ์', Mar:'มีนาคม', Apr:'เมษายน', May:'พฤษภาคม', Jun:'มิถุนายน', Jul:'กรกฎาคม', Aug:'สิงหาคม', Sep:'กันยายน', Oct:'ตุลาคม', Nov:'พฤศจิกายน', Dec:'ธันวาคม' };
+  const displayPeriodDate = (selectedMonth !== 'All' ? ` - ${MONTH_TH[selectedMonth] || selectedMonth}` : ' -') + (selectedYear !== 'All' ? ` ${selectedYear}` : '');
+  const displayPeriodType = selectedDoHomeType !== null ? ` - ${selectedDoHomeType === 'XL' ? 'DH XL' : selectedDoHomeType === 'Togo' ? 'To go' : 'มารีนสตูดิโอ'}` : '';
+  const displayPeriodText = displayPeriodDate + displayPeriodType;
   const PROVINCE_COORDS = {
     'เชียงราย': {
       x: 175,
@@ -1569,7 +1593,7 @@ function App() {
   const brandMovementAnalysis = useMemo(() => {
     if (data.length === 0 || selectedYear === 'All' || selectedMonth === 'All') return null;
     const mIdx = MONTH_ORDER.indexOf(selectedMonth);
-    const baseFiltered = data.filter(d => (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) && (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) && (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])));
+    const baseFiltered = data.filter(d => (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) && (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) && (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])) && (selectedDoHomeType === null || getDoHomeType(d.สาขา) === selectedDoHomeType));
     const cyData = baseFiltered.filter(d => d.Year === selectedYear);
     const cyBranches = [...new Set(cyData.filter(d => MONTH_ORDER.indexOf(d.Month) <= mIdx).map(d => d.สาขา))];
     const branchesWithNew = [];
@@ -1647,7 +1671,7 @@ function App() {
       lostSalesValuePrev,
       isJan: mIdx === 0
     };
-  }, [data, selectedYear, selectedMonth, selectedMalls, selectedBranches, selectedSizes, branchSizeMap]);
+  }, [data, selectedYear, selectedMonth, selectedMalls, selectedBranches, selectedSizes, branchSizeMap, selectedDoHomeType]);
   const sheet3Data = useMemo(() => {
     if (!metrics) return null;
     const mIdx = MONTH_ORDER.indexOf(selectedMonth);
@@ -1839,10 +1863,10 @@ function App() {
     if (data.length === 0 || selectedYear === 'All' || selectedMonth === 'All') return null;
     const prevYear = (parseInt(selectedYear) - 1).toString();
     const mIdx = MONTH_ORDER.indexOf(selectedMonth);
-    const baseFiltered = data.filter(d => (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) && (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) && (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])));
+    const baseFiltered = data.filter(d => (selectedMalls.length === 0 || selectedMalls.includes(d.Name)) && (selectedBranches.length === 0 || selectedBranches.includes(d.สาขา)) && (selectedSizes.length === 0 || selectedSizes.includes(branchSizeMap[d.สาขา])) && (selectedDoHomeType === null || getDoHomeType(d.สาขา) === selectedDoHomeType));
     const cyRows = baseFiltered.filter(d => d.Year === selectedYear && MONTH_ORDER.indexOf(d.Month) <= mIdx);
     const lyRows = baseFiltered.filter(d => d.Year === prevYear && MONTH_ORDER.indexOf(d.Month) <= mIdx);
-    const allPrevYearRows = data.filter(d => d.Year === prevYear);
+    const allPrevYearRows = data.filter(d => d.Year === prevYear && (selectedDoHomeType === null || getDoHomeType(d.สาขา) === selectedDoHomeType));
     const prevYearBranches = new Set(allPrevYearRows.map(d => d.สาขา));
     const branchTypeMap = {};
     const newBranchFirstMonth = {}; // branch → first month appeared (opening month)
@@ -1954,7 +1978,7 @@ function App() {
     window.__lflBranchTypeMap = branchTypeMap; // branch→'LFL'|'New' for DOM patchers
     window.__lflSelectedMonth = selectedMonth;  // selected month for DOM patchers
     return finalArray;
-  }, [data, selectedYear, selectedMonth, selectedMalls, selectedBranches, selectedSizes, branchSizeMap]);
+  }, [data, selectedYear, selectedMonth, selectedMalls, selectedBranches, selectedSizes, branchSizeMap, selectedDoHomeType]);
   const isTwoPagesTab5 = activeTab === 5 && !!matrixDataBySize;
   const renderTrendLabel = (props, brandName, color, dataList) => {
     const {
@@ -2508,7 +2532,12 @@ function App() {
       className: "flex justify-between items-end border-b border-white/20 pb-2 flex-shrink-0"
     }, /*#__PURE__*/React.createElement("h2", {
       className: "text-white font-bold text-2xl tracking-wide"
-    }, displayMall, displaySizeText, displayBranchText), /*#__PURE__*/React.createElement("div", {
+    }, displayMall, displaySizeText, displayBranchText, /*#__PURE__*/React.createElement("span", {
+      className: "text-white font-black text-2xl"
+    },
+      /*#__PURE__*/React.createElement("span", { className: "text-blue-200 font-bold text-xl opacity-70" }, displayPeriodDate),
+      displayPeriodType ? /*#__PURE__*/React.createElement("span", { className: "text-white font-black text-2xl" }, displayPeriodType) : null
+    )), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-2"
     }, /*#__PURE__*/React.createElement("div", {
       className: "bg-white/10 px-4 py-1 rounded-full text-blue-100 font-bold border border-white/10 flex items-center gap-2"
@@ -4041,18 +4070,41 @@ function App() {
     label: "\u0E2B\u0E49\u0E32\u0E07",
     options: filterOptions.malls,
     selected: selectedMalls,
-    onChange: setSelectedMalls
+    onChange: v => { setSelectedMalls(v); setSelectedDoHomeType(null); }
   }), /*#__PURE__*/React.createElement(MultiSelect, {
     label: "\u0E2A\u0E32\u0E02\u0E32",
     options: filterOptions.branches,
     selected: selectedBranches,
     onChange: setSelectedBranches
   }), /*#__PURE__*/React.createElement(MultiSelect, {
-    label: "ขนาดสาขา",
+    label: "\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E02\u0E32",
     options: filterOptions.sizes,
     selected: selectedSizes,
     onChange: setSelectedSizes
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), (() => {
+    const hasDoHome = selectedMalls.length > 0 && selectedMalls.every(mall => /dohome|ดูโฮม/i.test(mall));
+    if (!hasDoHome) return null;
+    const types = [
+      { key: 'XL', label: 'DH XL', color: '#1d4ed8', icon: '\uD83C\uDFEA' },
+      { key: 'Togo', label: 'To go', color: '#15803d', icon: '\uD83D\uDED2' },
+      { key: 'Marine', label: 'มารีนสตูดิโอ', color: '#b45309', icon: '\u2693' }
+    ];
+    return /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2 flex-wrap bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 mx-0 mb-2"
+    },
+      /*#__PURE__*/React.createElement("span", { className: "text-[10px] font-black text-blue-700 uppercase tracking-tight whitespace-nowrap" }, "\uD83D\uDCCB \u0E14\u0E39\u0E42\u0E2E\u0E21:"),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => setSelectedDoHomeType(null),
+        className: `px-4 py-1.5 rounded-lg text-sm font-black border-2 transition-all ${selectedDoHomeType === null ? 'bg-slate-700 text-white border-slate-700 shadow' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'}`
+      }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"),
+      types.map(t => /*#__PURE__*/React.createElement("button", {
+        key: t.key,
+        onClick: () => setSelectedDoHomeType(prev => prev === t.key ? null : t.key),
+        className: `px-4 py-1.5 rounded-lg text-sm font-black border-2 transition-all tracking-wide ${selectedDoHomeType === t.key ? 'text-white shadow' : 'bg-white text-slate-700 border-slate-300 hover:opacity-80'}`,
+        style: selectedDoHomeType === t.key ? { backgroundColor: t.color, borderColor: t.color } : {}
+      }, `${t.icon} ${t.label}`))
+    );
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 overflow-x-auto"
   }, ['ภาพรวมยอดขาย', 'LFL Analysis', 'แนวโน้ม MS%', 'คู่แข่ง', 'Branch Health', 'วิเคราะห์กลุ่ม MS%', 'แผนที่ภูมิภาค', 'Store Matrix'].map((t, i) => /*#__PURE__*/React.createElement("button", {
     key: t,
