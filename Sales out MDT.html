@@ -3161,35 +3161,37 @@ function App() {
     }), " \u0E2A\u0E32\u0E02\u0E32\u0E17\u0E35\u0E48\u0E21\u0E35\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E43\u0E2B\u0E21\u0E48\u0E40\u0E02\u0E49\u0E32\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 (", brandMovementAnalysis.branchesWithNew.length, " \u0E2A\u0E32\u0E02\u0E32)"), /*#__PURE__*/React.createElement("span", {
       className: "text-[9px] xl:text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black shadow-sm"
     }, "\u0E22\u0E2D\u0E14: \u0E3F", formatNum(brandMovementAnalysis.newSalesValue))), /*#__PURE__*/React.createElement("div", {
-      className: "flex-1 overflow-auto border border-slate-100 rounded bg-slate-50/50"
-    }, /*#__PURE__*/React.createElement("table", {
-      className: "w-full text-[9px] xl:text-[11px] text-left table-fixed"
-    }, /*#__PURE__*/React.createElement("thead", {
-      className: "bg-slate-100 sticky top-0"
-    }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b w-[35%] pl-2"
-    }, "\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E02\u0E32"), /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b w-[45%]"
-    }, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C"), /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b text-right w-[20%] pr-2"
-    }, "\u0E22\u0E2D\u0E14"))), /*#__PURE__*/React.createElement("tbody", {
-      className: "divide-y divide-slate-100 bg-white"
-    }, brandMovementAnalysis.branchesWithNew.map(b => /*#__PURE__*/React.createElement("tr", {
-      key: b.branch,
-      className: "hover:bg-emerald-50/50"
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 pl-2 font-bold text-slate-700 truncate"
-    }, b.branch), /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 text-emerald-600 font-bold truncate"
-    }, b.brands.map((br, idx) => /*#__PURE__*/React.createElement("span", {
-      key: idx,
-      className: "bg-emerald-50 px-1 py-0.5 rounded mr-1 inline-block border border-emerald-100 shadow-sm leading-none"
-    }, "+", br.name))), /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 pr-2 text-right font-black text-[#005AAB]"
-    }, "\u0E3F", formatNum(b.sales)))), brandMovementAnalysis.branchesWithNew.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: 3,
-      className: "p-4 text-center text-slate-400 font-medium italic text-[9px]"
-    }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E43\u0E2B\u0E21\u0E48")))))), /*#__PURE__*/React.createElement("div", {
+      className: "flex-1 overflow-y-auto custom-scrollbar flex gap-px rounded bg-slate-200"
+    }, (() => {
+      const _dE = brandMovementAnalysis.branchesWithNew;
+      if (!_dE.length) return /*#__PURE__*/React.createElement("div", {className:"w-full p-4 text-center text-slate-400 italic text-[9px] bg-white"}, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E43\u0E2B\u0E21\u0E48");
+      const _cE = _dE.length > 16 ? 3 : _dE.length > 8 ? 2 : 1;
+      const _sE = Math.ceil(_dE.length / _cE);
+      return Array.from({length: _cE}, (_, i) => _dE.slice(i * _sE, (i + 1) * _sE)).map((chunk, ci) =>
+        /*#__PURE__*/React.createElement("table", {
+          key: ci, className: "flex-1 text-[9px] bg-white border-collapse", style:{minWidth:0}
+        },
+          /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {className:"bg-slate-100"},
+            /*#__PURE__*/React.createElement("th", {className:"p-1 pl-1.5 font-bold text-slate-600 border-b text-left", style:{width:"38%"}}, "\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E02\u0E32"),
+            /*#__PURE__*/React.createElement("th", {className:"p-1 font-bold text-slate-600 border-b text-left"}, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C"),
+            /*#__PURE__*/React.createElement("th", {className:"p-1 pr-1.5 font-bold text-slate-600 border-b text-right", style:{width:"52px"}}, "\u0E22\u0E2D\u0E14")
+          )),
+          /*#__PURE__*/React.createElement("tbody", null, chunk.map(b =>
+            /*#__PURE__*/React.createElement("tr", {key:b.branch, className:"border-b border-slate-100 hover:bg-emerald-50/40"},
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pl-1.5 font-bold text-slate-700 truncate", style:{maxWidth:0, width:"38%", overflow:"hidden"}}, b.branch),
+              /*#__PURE__*/React.createElement("td", {className:"p-1 align-top"},
+                /*#__PURE__*/React.createElement("div", {className:"flex flex-wrap gap-0.5"},
+                  b.brands.map((br, idx) => /*#__PURE__*/React.createElement("span", {
+                    key:idx, className:"bg-emerald-50 px-1 rounded border border-emerald-100 text-emerald-600 font-bold whitespace-nowrap leading-none"
+                  }, "+", br.name))
+                )
+              ),
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-[#005AAB] text-right whitespace-nowrap", style:{fontSize:"8px"}}, "\u0E3F", formatNum(b.sales))
+            )
+          ))
+        )
+      );
+    })())), /*#__PURE__*/React.createElement("div", {
       className: "flex-1 bg-white/95 rounded-xl p-3 shadow-md border-l-4 border-rose-500 flex flex-col overflow-hidden"
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex justify-between items-center mb-2 flex-shrink-0"
@@ -3199,36 +3201,38 @@ function App() {
       size: 14
     }), " \u0E2A\u0E32\u0E02\u0E32\u0E17\u0E35\u0E48\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 (", brandMovementAnalysis.branchesWithLost.length, " \u0E2A\u0E32\u0E02\u0E32)"), /*#__PURE__*/React.createElement("span", {
       className: "text-[9px] xl:text-[9px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-black shadow-sm"
-    }, "\u0E2A\u0E39\u0E0D\u0E40\u0E2A\u0E35\u0E22: \u0E3F", formatNum(brandMovementAnalysis.lostSalesValuePrev))), /*#__PURE__*/React.createElement("div", {
-      className: "flex-1 overflow-auto border border-slate-100 rounded bg-slate-50/50"
-    }, /*#__PURE__*/React.createElement("table", {
-      className: "w-full text-[9px] xl:text-[11px] text-left table-fixed"
-    }, /*#__PURE__*/React.createElement("thead", {
-      className: "bg-slate-100 sticky top-0"
-    }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b w-[35%] pl-2"
-    }, "\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E02\u0E32"), /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b w-[45%]"
-    }, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C"), /*#__PURE__*/React.createElement("th", {
-      className: "p-1.5 font-bold text-slate-600 border-b text-right w-[20%] pr-2"
-    }, "\u0E22\u0E2D\u0E14\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E32\u0E22"))), /*#__PURE__*/React.createElement("tbody", {
-      className: "divide-y divide-slate-100 bg-white"
-    }, brandMovementAnalysis.branchesWithLost.map(b => /*#__PURE__*/React.createElement("tr", {
-      key: b.branch,
-      className: "hover:bg-rose-50/50"
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 pl-2 font-bold text-slate-700 truncate"
-    }, b.branch), /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 text-rose-600 font-bold truncate"
-    }, b.brands.map((br, idx) => /*#__PURE__*/React.createElement("span", {
-      key: idx,
-      className: "bg-rose-50 px-1 py-0.5 rounded mr-1 inline-block border border-rose-100 shadow-sm leading-none"
-    }, "-", br.name))), /*#__PURE__*/React.createElement("td", {
-      className: "p-1.5 pr-2 text-right font-black text-slate-400 line-through"
-    }, "\u0E3F", formatNum(b.salesPrev)))), brandMovementAnalysis.branchesWithLost.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-      colSpan: 3,
-      className: "p-4 text-center text-slate-400 font-medium italic text-[9px]"
-    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E2B\u0E32\u0E22\u0E44\u0E1B"))))))))));
+    }, "\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E2B\u0E32\u0E22: \u0E3F", formatNum(brandMovementAnalysis.lostSalesValuePrev))), /*#__PURE__*/React.createElement("div", {
+      className: "flex-1 overflow-y-auto custom-scrollbar flex gap-px rounded bg-slate-200"
+    }, (() => {
+      const _dR = brandMovementAnalysis.branchesWithLost;
+      if (!_dR.length) return /*#__PURE__*/React.createElement("div", {className:"w-full p-4 text-center text-slate-400 italic text-[9px] bg-white"}, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E2B\u0E32\u0E22\u0E44\u0E1B");
+      const _cR = _dR.length > 16 ? 3 : _dR.length > 8 ? 2 : 1;
+      const _sR = Math.ceil(_dR.length / _cR);
+      return Array.from({length: _cR}, (_, i) => _dR.slice(i * _sR, (i + 1) * _sR)).map((chunk, ci) =>
+        /*#__PURE__*/React.createElement("table", {
+          key: ci, className: "flex-1 text-[9px] bg-white border-collapse", style:{minWidth:0}
+        },
+          /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {className:"bg-slate-100"},
+            /*#__PURE__*/React.createElement("th", {className:"p-1 pl-1.5 font-bold text-slate-600 border-b text-left", style:{width:"38%"}}, "\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E32\u0E02\u0E32"),
+            /*#__PURE__*/React.createElement("th", {className:"p-1 font-bold text-slate-600 border-b text-left"}, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u0E17\u0E35\u0E48\u0E2B\u0E32\u0E22"),
+            /*#__PURE__*/React.createElement("th", {className:"p-1 pr-1.5 font-bold text-slate-600 border-b text-right", style:{width:"52px"}}, "\u0E22\u0E2D\u0E14\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E32\u0E22")
+          )),
+          /*#__PURE__*/React.createElement("tbody", null, chunk.map(b =>
+            /*#__PURE__*/React.createElement("tr", {key:b.branch, className:"border-b border-slate-100 hover:bg-rose-50/40"},
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pl-1.5 font-bold text-slate-700 truncate", style:{maxWidth:0, width:"38%", overflow:"hidden"}}, b.branch),
+              /*#__PURE__*/React.createElement("td", {className:"p-1 align-top"},
+                /*#__PURE__*/React.createElement("div", {className:"flex flex-wrap gap-0.5"},
+                  b.brands.map((br, idx) => /*#__PURE__*/React.createElement("span", {
+                    key:idx, className:"bg-rose-50 px-1 rounded border border-rose-100 text-rose-600 font-bold whitespace-nowrap leading-none"
+                  }, "-", br.name))
+                )
+              ),
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-slate-400 line-through text-right whitespace-nowrap", style:{fontSize:"8px"}}, "\u0E3F", formatNum(b.salesPrev))
+            )
+          ))
+        )
+      );
+    })()))))));
     if (tab === 4) return sheet3Data && /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col h-full gap-2 overflow-hidden"
     }, /*#__PURE__*/React.createElement("div", {
