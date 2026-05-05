@@ -648,6 +648,7 @@ function App() {
   const [mapTooltip, setMapTooltip] = useState(null);
   const [showProvinceTable, setShowProvinceTable] = useState(true);
   const [areaYoyView, setAreaYoyView] = useState(false);
+  const [compPeriodMode, setCompPeriodMode] = useState('ytd'); // 'ytd' | 'yoy'
   const [areaPeriodMode, setAreaPeriodMode] = useState('yoy'); // 'yoy' | 'ytd'
   const [storeViewMode, setStoreViewMode] = useState('ms');
   const [storePeriodMode, setStorePeriodMode] = useState('yoy'); // 'yoy' | 'ytd'
@@ -1682,43 +1683,59 @@ function App() {
     const sumTarget = arr => arr.reduce((s, r) => s + (parseFloat(r['เป้าการขาย']) || 0), 0);
     const cyY = currentFiltered.filter(d => d.Year === selectedYear && MONTH_ORDER.indexOf(d.Month) <= mIdx);
     const lyY = currentFiltered.filter(d => d.Year === prevY && MONTH_ORDER.indexOf(d.Month) <= mIdx);
+    // YOY: เฉพาะเดือนที่เลือก vs เดือนเดียวกันปีก่อน
+    const cyM = currentFiltered.filter(d => d.Year === selectedYear && d.Month === selectedMonth);
+    const lyM = currentFiltered.filter(d => d.Year === prevY && d.Month === selectedMonth);
     const cyYT = sumT(cyY);
     const lyYT = sumT(lyY);
+    const cyMT = sumT(cyM);
+    const lyMT = sumT(lyM);
     const cyTargetYTD = sumTarget(cyY);
     const pcCount = metrics.pcCount || 0;
     try{window.__lastCyY=cyY;window.__lastNumMonths=numMonths;}catch(e){}
     const brands = [];
     let other_csY = 0;
     let other_lsY = 0;
+    let other_csM = 0;
+    let other_lsM = 0;
     ALL_BRANDS.forEach(b => {
       const csY = sumB(cyY, b);
       const lsY = sumB(lyY, b);
+      const csM = sumB(cyM, b);
+      const lsM = sumB(lyM, b);
       const cmsY = cyYT > 0 ? csY / cyYT * 100 : 0;
       const lmsY = lyYT > 0 ? lsY / lyYT * 100 : 0;
+      const cmsM = cyMT > 0 ? csM / cyMT * 100 : 0;
+      const lmsM = lyMT > 0 ? lsM / lyMT * 100 : 0;
       if (cmsY < 1 && b !== 'Beger') {
         other_csY += csY;
         other_lsY += lsY;
-      } else if (csY > 0 || lsY > 0) {
+        other_csM += csM;
+        other_lsM += lsM;
+      } else if (csY > 0 || lsY > 0 || csM > 0 || lsM > 0) {
         brands.push({
           brand: b,
-          csY,
-          lsY,
-          cmsY,
-          lmsY,
-          gY: lsY > 0 ? (csY - lsY) / lsY * 100 : csY > 0 ? 100 : 0
+          csY, lsY,
+          csM, lsM,
+          cmsY, lmsY,
+          cmsM, lmsM,
+          gY: lsY > 0 ? (csY - lsY) / lsY * 100 : csY > 0 ? 100 : 0,
+          gM: lsM > 0 ? (csM - lsM) / lsM * 100 : csM > 0 ? 100 : 0
         });
       }
     });
     if (other_csY > 0 || other_lsY > 0) {
       const cmsY = cyYT > 0 ? other_csY / cyYT * 100 : 0;
       const lmsY = lyYT > 0 ? other_lsY / lyYT * 100 : 0;
+      const cmsM = cyMT > 0 ? other_csM / cyMT * 100 : 0;
+      const lmsM = lyMT > 0 ? other_lsM / lyMT * 100 : 0;
       brands.push({
         brand: 'อื่นๆ',
-        csY: other_csY,
-        lsY: other_lsY,
-        cmsY,
-        lmsY,
-        gY: other_lsY > 0 ? (other_csY - other_lsY) / other_lsY * 100 : other_csY > 0 ? 100 : 0
+        csY: other_csY, lsY: other_lsY,
+        csM: other_csM, lsM: other_lsM,
+        cmsY, lmsY, cmsM, lmsM,
+        gY: other_lsY > 0 ? (other_csY - other_lsY) / other_lsY * 100 : other_csY > 0 ? 100 : 0,
+        gM: other_lsM > 0 ? (other_csM - other_lsM) / other_lsM * 100 : other_csM > 0 ? 100 : 0
       });
     }
     brands.sort((a, b) => b.csY - a.csY);
@@ -1737,6 +1754,13 @@ function App() {
         begerYTD: beg.csY,
         begerLYYTD: beg.lsY,
         targetYTD: cyTargetYTD
+      },
+      mSum: {
+        total: cyMT,
+        g: lyMT > 0 ? (cyMT - lyMT) / lyMT * 100 : 0,
+        begG: beg.gM || 0,
+        begerM: beg.csM,
+        begerLYM: beg.lsM
       },
       pcCount
     };
@@ -2245,27 +2269,27 @@ function App() {
       'M': '(Avg ≥ 1M)',
       'S': '(Avg < 1M)'
     };
-    const cellP = "px-1.5 py-0 text-xs xl:text-[13px] leading-none";
-    const titleCell = "px-3 py-0 text-xs xl:text-[14px] leading-tight";
-    const boxSize = "w-[24px] h-[24px] xl:w-[28px] xl:h-[28px] text-xs xl:text-[14px] rounded-md";
-    const headH = "h-7 xl:h-8 text-[11px] xl:text-xs";
-    const textTotal = "text-[14px] xl:text-[16px]";
-    const changeTextSize = "text-[9px] xl:text-[11px]";
-    const trClass = "h-[24px] xl:h-[28px]";
-    const titleTrClass = "h-[28px] xl:h-[32px]";
-    const cellFlex = "flex flex-row items-center justify-center gap-2 xl:gap-2.5";
+    const cellP = "px-1.5 py-0 text-[10px] xl:text-[12px] leading-none";
+    const titleCell = "px-3 py-0 text-[10px] xl:text-[13px] leading-tight";
+    const boxSize = "w-[20px] h-[20px] xl:w-[24px] xl:h-[24px] text-[10px] xl:text-xs rounded-md";
+    const headH = "text-[10px] xl:text-[11px]";
+    const textTotal = "text-[13px] xl:text-[15px]";
+    const changeTextSize = "text-[8px] xl:text-[9px]";
+    const trClass = "";
+    const titleTrClass = "";
+    const cellFlex = "flex flex-row items-center justify-center gap-1 xl:gap-2";
     return /*#__PURE__*/React.createElement("div", {
       className: "overflow-hidden h-full w-full absolute inset-0 bg-white"
     }, /*#__PURE__*/React.createElement("table", {
-      className: "w-full border-collapse min-h-full"
+      className: "w-full h-full border-collapse table-fixed"
     }, /*#__PURE__*/React.createElement("thead", {
       className: "bg-slate-900 text-white sticky top-0 z-30 shadow-sm"
     }, /*#__PURE__*/React.createElement("tr", {
-      className: headH
+      className: headH, style: {height: "calc(100% / 17)"}
     }, /*#__PURE__*/React.createElement("th", {
-      className: `${cellP} border-r border-slate-700 w-[18%] text-left pl-6 sticky left-0 bg-slate-900 z-40 shadow-[2px_0_5px_rgba(0,0,0,0.2)]`
+      className: `${cellP} border-r border-slate-700 w-[13%] text-left pl-4 sticky left-0 bg-slate-900 z-40 shadow-[2px_0_5px_rgba(0,0,0,0.2)]`
     }, "\u0E2A\u0E16\u0E32\u0E19\u0E30 / \u0E40\u0E14\u0E37\u0E2D\u0E19"), /*#__PURE__*/React.createElement("th", {
-      className: `${cellP} border-r border-slate-700 text-center bg-slate-800 min-w-[100px] xl:min-w-[120px]`
+      className: `${cellP} border-r border-slate-700 text-center bg-slate-800 w-[22%]`
     }, "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), MONTH_ORDER.map(m => /*#__PURE__*/React.createElement("th", {
       key: m,
       className: "p-1 border-r border-slate-700 last:border-0"
@@ -2274,9 +2298,9 @@ function App() {
     }, groups.map(group => /*#__PURE__*/React.createElement(React.Fragment, {
       key: group.size
     }, /*#__PURE__*/React.createElement("tr", {
-      className: `bg-slate-800 text-blue-100 font-bold ${titleTrClass}`
+      className: `bg-slate-800 text-blue-100 font-bold ${titleTrClass}`, style: {height: "calc(100% / 17 * 1.3)"}
     }, /*#__PURE__*/React.createElement("td", {
-      className: `${titleCell} font-black text-left pl-6 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.1)] border-b border-slate-700 bg-slate-800`
+      className: `${titleCell} font-black text-left pl-4 sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.1)] border-b border-slate-700 bg-slate-800`
     }, "Store Size: ", /*#__PURE__*/React.createElement("span", {
       className: "text-white text-[14px] xl:text-[16px]"
     }, group.size), /*#__PURE__*/React.createElement("span", {
@@ -2292,7 +2316,7 @@ function App() {
       const greenDiff = pm ? cm.green - pm.green : 0;
       const dirText = greenDiff > 0 ? `🟢+${greenDiff}` : greenDiff < 0 ? `🟢${greenDiff}` : '–';
       const dirColor = greenDiff > 0 ? 'text-emerald-300' : greenDiff < 0 ? 'text-rose-300' : 'text-amber-300';
-      return /*#__PURE__*/React.createElement("div", {className: "flex flex-col items-center gap-0.5"}, /*#__PURE__*/React.createElement("span", {className: "text-[11px] xl:text-xs text-white font-black leading-none"}, `${cm.green}🟢 ${cm.yellow}🟡 ${cm.red}🔴`), pm && /*#__PURE__*/React.createElement("span", {className: `text-[9px] xl:text-[10px] font-bold ${dirColor}`}, `${dirIcon} ${dirText}`));
+      return /*#__PURE__*/React.createElement("div", {className: "flex flex-col items-center"}, /*#__PURE__*/React.createElement("span", {className: "text-[10px] xl:text-[11px] text-white font-black leading-none whitespace-nowrap"}, `${cm.green}🟢 ${cm.yellow}🟡 ${cm.red}🔴`), pm && /*#__PURE__*/React.createElement("span", {className: `text-[8px] xl:text-[9px] font-bold leading-none whitespace-nowrap ${dirColor}`}, `${dirIcon} ${dirText}`));
     })()), group.months.map((m, idx) => {
       const prev = idx > 0 ? group.months[idx - 1].total : null;
       const isValidMonth = matrixDataBySize.some(g => g.months[idx].total > 0);
@@ -2306,9 +2330,9 @@ function App() {
       }, m.total), renderChange(m.total, prev, 'total', true, changeTextSize, isValidMonth)));
     })), ['green', 'yellow', 'red'].map((s, index) => /*#__PURE__*/React.createElement("tr", {
       key: `${group.size}-${s}`,
-      className: `transition-all hover:bg-slate-50 ${trClass} ${index === 2 ? 'border-b-[3px] border-slate-300/50' : 'border-b border-slate-100'}`
+      className: `transition-all hover:bg-slate-50 ${trClass} ${index === 2 ? 'border-b-[3px] border-slate-300/50' : 'border-b border-slate-100'}`, style: {height: "calc(100% / 17)"}
     }, /*#__PURE__*/React.createElement("td", {
-      className: `${cellP} font-bold border-r text-left pl-8 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] bg-white ${s === 'green' ? 'text-green-700' : s === 'yellow' ? 'text-yellow-600' : 'text-red-700'}`
+      className: `${cellP} font-bold border-r text-left pl-5 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] bg-white ${s === 'green' ? 'text-green-700' : s === 'yellow' ? 'text-yellow-600' : 'text-red-700'}`
     }, "\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2A\u0E35", s === 'green' ? 'เขียว' : s === 'yellow' ? 'เหลือง' : 'แดง'), /*#__PURE__*/React.createElement("td", {
       className: "p-1 border-r align-middle bg-white"
     }, (() => {
@@ -2342,9 +2366,9 @@ function App() {
         return { main: `MS%ปานกลางคงที่`, sub: `${val} สาขา • ผลักดันสู่กลุ่มเขียว`, color: 'text-amber-700', bg: 'bg-amber-50 border border-amber-200' };
       };
       const d = getDesc();
-      return /*#__PURE__*/React.createElement("div", {className: `mx-1 rounded-lg px-1.5 py-1 ${d.bg} flex flex-col gap-0.5`},
-        /*#__PURE__*/React.createElement("span", {className: `text-[9px] xl:text-[10px] font-black leading-snug ${d.color} text-left`}, d.main),
-        /*#__PURE__*/React.createElement("span", {className: "text-[8px] xl:text-[9px] text-slate-500 font-medium leading-snug text-left"}, d.sub));
+      return /*#__PURE__*/React.createElement("div", {className: `mx-1 rounded px-1.5 py-0.5 ${d.bg}`},
+        /*#__PURE__*/React.createElement("div", {className: `text-[9px] xl:text-[10px] font-black leading-none whitespace-nowrap ${d.color} text-left`}, d.main),
+        /*#__PURE__*/React.createElement("div", {className: "text-[8px] xl:text-[9px] text-slate-500 font-medium leading-none whitespace-nowrap text-left"}, d.sub));
     })()), group.months.map((m, idx) => {
       const prev = idx > 0 ? group.months[idx - 1][s] : null;
       const isValidMonth = matrixDataBySize.some(g => g.months[idx].total > 0);
@@ -2358,7 +2382,8 @@ function App() {
       }, m[s]), renderChange(m[s], prev, s, false, changeTextSize, isValidMonth)));
     }))))))));
   };
-  const renderTableSheet3 = (brands, sum, title, pcCount, numMonths) => {
+  const renderTableSheet3 = (brands, sum, title, pcCount, numMonths, periodMode) => {
+    const isYoy = periodMode === 'yoy';
     const numRows = brands.length;
     const gap = sum.begG - sum.g;
     const isWin = gap >= 0;
@@ -2433,21 +2458,21 @@ function App() {
       className: "font-bold w-[11%] pl-2"
     }, "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[14%] pr-3"
-    }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21 (YTD)"), /*#__PURE__*/React.createElement("th", {
+    }, isYoy ? ("ยอดขาย " + selectedMonth + " " + selectedYear) : "ยอดขายสะสม (YTD)"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[14%] pr-3"
-    }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
+    }, isYoy ? ("ยอดขาย " + selectedMonth + " " + (parseInt(selectedYear)-1)) : "ยอดขายสะสมปีที่แล้ว"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[7%] pr-2"
-    }, "% \u0E42\u0E15"), /*#__PURE__*/React.createElement("th", {
+    }, isYoy ? "% YoY" : "% โต"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[10%] pr-2"
-    }, "MS% \u0E1B\u0E35\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), /*#__PURE__*/React.createElement("th", {
+    }, isYoy ? "MS% เดือนนี้" : "MS% ปีปัจจุบัน"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[10%] pr-2"
-    }, "MS% \u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27"), /*#__PURE__*/React.createElement("th", {
+    }, isYoy ? "MS% ปีก่อน" : "MS% ปีที่แล้ว"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[9%] pr-2"
     }, "Change"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[11%] pr-2"
-    }, "\u0E08\u0E33\u0E19\u0E27\u0E19 PC"), /*#__PURE__*/React.createElement("th", {
+    }, "จำนวน PC"), /*#__PURE__*/React.createElement("th", {
       className: "text-right w-[10%] pr-3"
-    }, "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22/PC/\u0E40\u0E14\u0E37\u0E2D\u0E19"))), /*#__PURE__*/React.createElement("tbody", {
+    }, isYoy ? "เฉลี่ย/PC" : "เฉลี่ย/PC/เดือน"))), /*#__PURE__*/React.createElement("tbody", {
       className: "divide-y"
     }, brands.map((b, index) => /*#__PURE__*/React.createElement("tr", {
       key: b.brand,
@@ -2463,22 +2488,22 @@ function App() {
       }
     }), b.brand)), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-3 text-slate-500`
-    }, formatNum(b.csY)), /*#__PURE__*/React.createElement("td", {
+    }, formatNum(isYoy ? b.csM : b.csY)), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-3 text-slate-500`
-    }, formatNum(b.lsY)), /*#__PURE__*/React.createElement("td", {
+    }, formatNum(isYoy ? b.lsM : b.lsY)), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-2`
     }, /*#__PURE__*/React.createElement(ColorNum, {
-      val: b.gY,
+      val: isYoy ? b.gM : b.gY,
       formatFn: formatPctStr,
       showPlus: true
     })), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-2 text-[#003876]`
-    }, formatPctStr(b.cmsY)), /*#__PURE__*/React.createElement("td", {
+    }, formatPctStr(isYoy ? b.cmsM : b.cmsY)), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-2 text-slate-500`
-    }, formatPctStr(b.lmsY)), /*#__PURE__*/React.createElement("td", {
+    }, formatPctStr(isYoy ? b.lmsM : b.lmsY)), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-2`
     }, /*#__PURE__*/React.createElement(ColorNum, {
-      val: b.cmsY - b.lmsY,
+      val: isYoy ? (b.cmsM - b.lmsM) : (b.cmsY - b.lmsY),
       formatFn: formatFloat,
       showPlus: true,
       isPts: true
@@ -2486,7 +2511,7 @@ function App() {
       className: `${scale.td} text-right pr-2 text-[#005AAB]`
     }, b.brand === 'Beger' ? pcCount : '-'), /*#__PURE__*/React.createElement("td", {
       className: `${scale.td} text-right pr-3 text-[#005AAB]`
-    }, b.brand === 'Beger' && pcCount > 0 && numMonths > 0 ? `฿${formatNum(b.csY / pcCount / numMonths)}` : '-')))))), /*#__PURE__*/React.createElement("div", {
+    }, b.brand === 'Beger' && pcCount > 0 ? (isYoy ? `฿${formatNum(b.csM / pcCount)}` : (numMonths > 0 ? `฿${formatNum(b.csY / pcCount / numMonths)}` : '-')) : '-')))))), /*#__PURE__*/React.createElement("div", {
       className: `${scale.foot} border-t flex flex-row justify-between items-center flex-shrink-0 ${isWin ? 'bg-emerald-50' : 'bg-rose-50'} rounded-b-md overflow-hidden`
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex flex-row items-center gap-3 truncate"
@@ -2522,7 +2547,7 @@ function App() {
       className: `font-bold text-[#005AAB] bg-blue-100/50 ${scale.badge} rounded shadow-sm border border-blue-100`
     }, "\u0E23\u0E27\u0E21 PC: ", pcCount, " \u0E04\u0E19"), /*#__PURE__*/React.createElement("span", {
       className: `font-bold text-[#005AAB] bg-blue-100/50 ${scale.badge} rounded shadow-sm border border-blue-100`
-    }, "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22\u0E22\u0E2D\u0E14/PC/\u0E40\u0E14\u0E37\u0E2D\u0E19: \u0E3F", pcCount > 0 && numMonths > 0 ? formatNum(sum.begerYTD / pcCount / numMonths) : 0))));
+    }, isYoy ? ("เฉลี่ยยอด/PC: ฿" + (pcCount > 0 ? formatNum(sum.begerM / pcCount) : 0)) : ("เฉลี่ยยอด/PC/เดือน: ฿" + (pcCount > 0 && numMonths > 0 ? formatNum(sum.begerYTD / pcCount / numMonths) : 0))))));
   };
   const renderPage = page => {
     const tab = page.tab;
@@ -3239,15 +3264,23 @@ function App() {
       className: "flex justify-between items-end border-b border-white/20 pb-2 flex-shrink-0"
     }, /*#__PURE__*/React.createElement("h2", {
       className: "text-white font-bold text-2xl tracking-wide"
-    }, displayMall, displaySizeText, displayBranchText, " - \u0E15\u0E32\u0E23\u0E32\u0E07\u0E40\u0E1B\u0E23\u0E35\u0E22\u0E1A\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E04\u0E39\u0E48\u0E41\u0E02\u0E48\u0E07\u0E2A\u0E30\u0E2A\u0E21 (YTD) \u0E16\u0E36\u0E07 ", selectedMonth, " ", selectedYear), /*#__PURE__*/React.createElement("div", {
+    }, displayMall, displaySizeText, displayBranchText, " - ตารางเปรียบเทียบคู่แข่ง", " (", compPeriodMode === 'yoy' ? ("YoY " + selectedMonth + " " + selectedYear) : ("YTD ถึง " + selectedMonth + " " + selectedYear), ")"), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex bg-white/10 rounded-xl p-1 gap-1 border border-white/20"
+    }, [{key:'ytd',label:'\uD83D\uDCC6 YTD'},{key:'yoy',label:'\uD83D\uDCC5 YoY'}].map(({key,label}) => /*#__PURE__*/React.createElement("button", {
+      key, onClick: () => setCompPeriodMode(key),
+      className: `px-3 py-1 rounded-lg text-xs font-black transition-all ${compPeriodMode===key?'bg-white text-[#003876] shadow-md':'text-white/70 hover:text-white hover:bg-white/10'}`
+    }, label))
+    ), /*#__PURE__*/React.createElement("div", {
       className: "bg-white/10 px-4 py-1 rounded-full text-blue-100 font-bold border border-white/10 flex items-center gap-2"
     }, /*#__PURE__*/React.createElement(Store, {
       size: 16
     }), " PC: ", metrics.pcCount, " ", /*#__PURE__*/React.createElement("span", {
       className: "opacity-60 text-xs font-medium"
-    }, "/ ", metrics.modelPcCount))), /*#__PURE__*/React.createElement("div", {
+    }, "/ ", metrics.modelPcCount)))), /*#__PURE__*/React.createElement("div", {
       className: "flex-1 min-h-0 w-full pt-1"
-    }, renderTableSheet3(sheet3Data.brands, sheet3Data.ySum, null, sheet3Data.pcCount, sheet3Data.numMonths)));
+    }, renderTableSheet3(sheet3Data.brands, compPeriodMode === 'yoy' ? sheet3Data.mSum : sheet3Data.ySum, null, sheet3Data.pcCount, sheet3Data.numMonths, compPeriodMode)));
     if (tab === 5 && page.part === 'a') return matrixDataBySize && /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col w-full h-full gap-1.5 p-4"
     }, /*#__PURE__*/React.createElement("h2", {
