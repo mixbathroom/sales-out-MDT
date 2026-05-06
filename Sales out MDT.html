@@ -1891,12 +1891,18 @@ function App() {
     const cyRows = baseFiltered.filter(d => d.Year === selectedYear && MONTH_ORDER.indexOf(d.Month) <= mIdx);
     const lyRows = baseFiltered.filter(d => d.Year === prevYear && MONTH_ORDER.indexOf(d.Month) <= mIdx);
     const allPrevYearRows = data.filter(d => d.Year === prevYear && (selectedDoHomeType === null || getDoHomeType(d.สาขา) === selectedDoHomeType));
-    const prevYearBranches = new Set(allPrevYearRows.map(d => d.สาขา));
-    const branchTypeMap = {};
+    // ── LFL classification by SAP code (not branch name) ──
+    const normSAP = d => String(d.SAP || d[' SAP '] || d['SAP '] || d[' SAP'] || '').replace(/\.0+$/, '').trim();
+    const prevYearSAPs = new Set(allPrevYearRows.map(d => normSAP(d)).filter(Boolean));
+    const branchTypeMap = {}; // keyed by สาขา (branch name) for display, classified by SAP
     const newBranchFirstMonth = {}; // branch → first month appeared (opening month)
+    // Build สาขา→SAP map from current-year rows
+    const branchSAPMap = {};
+    cyRows.forEach(row => { const s = normSAP(row); if (s && row.สาขา) branchSAPMap[row.สาขา] = s; });
     const uniqueCurrentBranches = [...new Set(cyRows.map(d => d.สาขา))];
     uniqueCurrentBranches.forEach(b => {
-      branchTypeMap[b] = prevYearBranches.has(b) ? 'LFL' : 'New';
+      const sap = branchSAPMap[b] || '';
+      branchTypeMap[b] = sap ? (prevYearSAPs.has(sap) ? 'LFL' : 'New') : 'LFL';
     });
     // Find first month for each new branch
     cyRows.forEach(row => {
