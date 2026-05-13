@@ -1489,6 +1489,8 @@ function App() {
       yMarket: ym,
       lyMarket: lym,
       lyYMarket: lyYm,
+      lyYSales: sum(lyYtd, 'Beger'),
+      ytdSalesGrowthPct: (() => { const lys = sum(lyYtd, 'Beger'); return lys > 0 ? (ys - lys) / lys * 100 : ys > 0 ? 100 : 0; })(),
       marketGrowthPct: lym > 0 ? (m - lym) / lym * 100 : m > 0 ? 100 : 0,
       yMarketGrowthPct: lyYm > 0 ? (ym - lyYm) / lyYm * 100 : ym > 0 ? 100 : 0,
       ach: t > 0 ? s / t * 100 : 0,
@@ -2725,6 +2727,14 @@ function App() {
     }, /*#__PURE__*/React.createElement(BarChart3, {
       size: 20
     }), " \u0E01\u0E23\u0E32\u0E1F\u0E40\u0E1B\u0E23\u0E35\u0E22\u0E1A\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22"), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: `flex flex-col items-center px-4 py-1.5 rounded-xl border shadow-sm ${metrics.ytdSalesGrowthPct >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-slate-500 text-[9px] font-black uppercase tracking-wider"
+    }, "% \u0E42\u0E15\u0E1B\u0E35\u0E2A\u0E30\u0E2A\u0E21 (YTD YoY)"), /*#__PURE__*/React.createElement("span", {
+      className: `font-black text-sm leading-tight ${metrics.ytdSalesGrowthPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`
+    }, metrics.ytdSalesGrowthPct >= 0 ? "\u25B2 +" : "\u25BC ", formatPctStr(metrics.ytdSalesGrowthPct))), /*#__PURE__*/React.createElement("div", {
       className: "flex items-center gap-4 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-200 shadow-sm"
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col items-end"
@@ -2740,7 +2750,7 @@ function App() {
       className: "text-slate-400 text-[9px] font-black uppercase tracking-wider"
     }, "\u0E04\u0E48\u0E32\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22 Ach% (YTD)"), /*#__PURE__*/React.createElement("span", {
       className: `font-black text-sm leading-tight ${metrics.yAch >= 100 ? 'text-emerald-500' : 'text-amber-500'}`
-    }, formatPctStr(metrics.yAch))))), /*#__PURE__*/React.createElement("div", {
+    }, formatPctStr(metrics.yAch)))))), /*#__PURE__*/React.createElement("div", {
       className: "flex-1"
     }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
       width: "100%",
