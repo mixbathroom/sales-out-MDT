@@ -1984,11 +1984,24 @@ function App() {
         resultMap[mall][type].actualPc += actual;
       }
     });
+    // Build SAP→mall map จาก cyRows เพื่อ join LY rows ด้วย SAP (ไม่ใช่ชื่อสาขา)
+    // แก้ปัญหา: ชื่อสาขาเปลี่ยนระหว่างปี เช่น "HP Megahome ..." → "Megahome ..."
+    const sapMallMap = {};   // SAP → mall name
+    const sapCyTypeMap = {}; // SAP → 'LFL'|'New'  (จาก CY rows)
+    cyRows.forEach(row => {
+      const sap = normSAP(row);
+      if (!sap) return;
+      sapMallMap[sap] = row.Name || 'ไม่ระบุ';
+      sapCyTypeMap[sap] = branchTypeMap[row.สาขา] || 'LFL';
+    });
+
     lyRows.forEach(row => {
-      const mall = row.Name || 'ไม่ระบุ';
-      const branch = row.สาขา;
-      const type = branchTypeMap[branch];
-      if (type === 'LFL' && resultMap[mall]) {
+      const sap = normSAP(row);
+      if (!sap) return;
+      // ใช้ SAP หา mall และ type (ไม่สนใจชื่อสาขาที่อาจเปลี่ยน)
+      const mall = sapMallMap[sap];
+      const type = sapCyTypeMap[sap];
+      if (type === 'LFL' && mall && resultMap[mall]) {
         const isCurrentMonth = row.Month === selectedMonth;
         const act = parseFloat(row.Beger) || 0;
         resultMap[mall].LFL.lyYAct += act;
@@ -2026,9 +2039,16 @@ function App() {
         total
       });
     });
+    // Build SAP→type map for DOM patchers (ใช้ SAP เป็น key แทนชื่อสาขา)
+    const sapTypeMap = {};
+    Object.keys(branchSAPMap).forEach(branch => {
+      const sap = branchSAPMap[branch];
+      if (sap) sapTypeMap[sap] = branchTypeMap[branch] || 'LFL';
+    });
     window.__lflData = finalArray;
     window.__lflCyY = cyRows; // expose current-year rows for DOM patchers
-    window.__lflBranchTypeMap = branchTypeMap; // branch→'LFL'|'New' for DOM patchers
+    window.__lflBranchTypeMap = branchTypeMap; // branch→'LFL'|'New' for DOM patchers (legacy)
+    window.__lflSapTypeMap = sapTypeMap;        // SAP→'LFL'|'New' for DOM patchers (primary)
     window.__lflSelectedMonth = selectedMonth;  // selected month for DOM patchers
     return finalArray;
   }, [data, selectedYear, selectedMonth, selectedMalls, selectedBranches, selectedSizes, branchSizeMap, selectedDoHomeType]);
@@ -5518,21 +5538,29 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
 
     if(!pcStores) return;
 
-    // ── Fallback: branch-name bridge + branchTypeMap for LFL/New/Total split ──
+    // ── Fallback: SAP-based type lookup (ใช้รหัส SAP เป็นหลัก ไม่ใช้ชื่อสาขา) ──
     var cyRows=window.__lflCyY||window.__lastCyY||[];
     var btMap=window.__lflBranchTypeMap||{};
     var selMonth=window.__lflSelectedMonth||null;
 
-    // Build branch→mall from cyRows (sales-data branch names)
-    var branchMallMap={};
+    // Build SAP→{mall, type} from sales-data rows using SAP code (not branch name)
+    var normS=function(v){return String(v||'').replace(/\.0+$/,'').trim();};
+    var sapMallMap={};   // SAP → mall name (Name column)
+        // ใช้ React-exposed SAP→type map ก่อน (แม่นยำที่สุด ใช้รหัส SAP)
+    var sapTypeMap=window.__lflSapTypeMap ? Object.assign({},window.__lflSapTypeMap) : {};
     cyRows.forEach(function(r){
-      var br=String(r['\u0e2a\u0e32\u0e02\u0e32']||r.branch||'').trim();
+      var sap=normS(r.SAP||r[' SAP ']||r['SAP ']||r[' SAP']);
       var ml=String(r.Name||'').trim();
-      if(br&&ml) branchMallMap[br]=ml;
+      if(sap&&ml) sapMallMap[sap]=ml;
+      // fallback เฉพาะ SAP ที่ไม่มีใน sapTypeMap
+      if(sap&&!sapTypeMap[sap]){
+        var br=String(r['\u0e2a\u0e32\u0e02\u0e32']||r.branch||'').trim();
+        if(br&&btMap[br]) sapTypeMap[sap]=btMap[br];
+      }
     });
-    log('[LFL] branchMallMap: '+Object.keys(branchMallMap).length+' entries, btMap: '+Object.keys(btMap).length);
+    log('[LFL] sapMallMap: '+Object.keys(sapMallMap).length+' | sapTypeMap: '+Object.keys(sapTypeMap).length+' | btMap: '+Object.keys(btMap).length);
 
-    // Walk pcStores: for each SAP, map branch→mall and branch→LFL|New type
+    // Walk pcStores keyed by SAP — look up mall and LFL/New type via SAP
     // Shape: mallSplit[mall] = {LFL:{model,actual}, New:{model,actual}, Total:{model,actual}}
     var mallSplit={};
     function ensureMall(m){
@@ -5540,10 +5568,10 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     }
     Object.keys(pcStores).forEach(function(sap){
       var s=pcStores[sap];
-      var branch=String(s.branch||'').trim();
-      var mall=branchMallMap[branch]||String(s.hang||'').trim();
+      // ใช้ SAP เป็น key หลักในการหา mall และ type
+      var mall=sapMallMap[sap]||String(s.hang||'').trim();
       if(!mall) return;
-      var type=btMap[branch]||'LFL'; // default LFL if unknown
+      var type=sapTypeMap[sap]||'LFL'; // default LFL ถ้าไม่พบ SAP ใน sales data
       var m=s['Beger_m']||0, a=s['Beger']||0;
       ensureMall(mall);
       mallSplit[mall][type].model+=m;
