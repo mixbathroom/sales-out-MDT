@@ -11,6 +11,14 @@ body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMac
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .tab9-thead th { height: 16px !important; max-height: 16px !important; padding-top: 0 !important; padding-bottom: 0 !important; font-size: 11px !important; line-height: 16px !important; overflow: hidden !important; }
+/* Sup detail table — uniform header row heights */
+.sup-detail-thead tr:first-child { height: 32px !important; }
+.sup-detail-thead tr:last-child  { height: 28px !important; }
+.sup-detail-thead th { vertical-align: middle !important; line-height: 1.3 !important; }
+/* Fix: ป้องกัน thead โปร่งแสงเมื่อ scroll — ต้องมี background solid ทั้ง thead และทุก th */
+.sup-detail-thead { background: #0a1628 !important; }
+.sup-detail-thead tr { background: #0a1628 !important; }
+.sup-detail-thead th { background: #0a1628 !important; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 /* Fix: ป้องกันแถวสุดท้าย (ห้างสุดท้าย) ตกขอบล่าง */
 .overflow-auto.custom-scrollbar tbody tr:last-child td,
@@ -663,6 +671,12 @@ function App() {
   const [storeSortDir, setStoreSortDir] = useState('desc');
   const [isPrinting, setIsPrinting] = useState(false);
   const [openLflDropdown, setOpenLflDropdown] = useState(null); // mall name or null
+  const [pcSubTab, setPcSubTab] = useState('summary');
+  const [supSubTab, setSupSubTab] = React.useState('summary');
+  const [supSort, setSupSort] = React.useState({key:'may_s',dir:'desc'});
+  const [pcFilterChain, setPcFilterChain] = useState('all');
+  const [pcFilterPC, setPcFilterPC] = useState('all');
+  const [pcFilterTier, setPcFilterTier] = useState('all');
   const [provYoySortKey, setProvYoySortKey] = useState('growth');
   const [provYoySortDir, setProvYoySortDir] = useState('desc');
   const [provMsSortKey, setProvMsSortKey] = useState('cyB');
@@ -3470,7 +3484,7 @@ function App() {
       className: "p-1 border-r border-slate-200 text-center align-middle bg-white group-hover:bg-slate-100"
     }, /*#__PURE__*/React.createElement("div", {
       className: `text-[11px] font-black ${row.avgSalesPerPC > 0 && row.avgSalesPerPC < 200000 ? 'text-red-600' : 'text-[#005AAB]'}`
-    }, "\u0E3F", formatNum(row.avgSalesPerPC))), MONTH_ORDER.map(m => {
+    }, formatNum(row.avgSalesPerPC))), MONTH_ORDER.map(m => {
       const cell = row.months[m];
       if (!cell.hasData) return /*#__PURE__*/React.createElement("td", {
         key: m,
@@ -3494,7 +3508,7 @@ function App() {
         style: {backgroundColor: msCard, border: msCardBorder}
       }, /*#__PURE__*/React.createElement("span", {
         className: "font-bold truncate", style: {color: msTxt}
-      }, "\u0E3F", formatNum(cell.beger)), cell.hasTarget && /*#__PURE__*/React.createElement("span", {
+      }, formatNum(cell.beger)), cell.hasTarget && /*#__PURE__*/React.createElement("span", {
         className: `font-bold truncate`, style: {color: msTxt}
       }, "Ach: ", cell.ach.toFixed(0), "%"))));
     }), /*#__PURE__*/React.createElement("td", {
@@ -3507,7 +3521,7 @@ function App() {
       className: "flex flex-col text-[7.5px] text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 w-full max-w-[98%] shadow-sm mt-0.5 overflow-hidden"
     }, /*#__PURE__*/React.createElement("span", {
       className: "font-bold text-slate-400 truncate"
-    }, "Tar: \u0E3F", formatNum(row.avgTarget)), /*#__PURE__*/React.createElement("span", {
+    }, "Tar: ", formatNum(row.avgTarget)), /*#__PURE__*/React.createElement("span", {
       className: "font-bold truncate", style: {color: row.avgAch >= 100 ? '#16a34a' : row.avgAch >= 80 ? '#d97706' : '#dc2626'}
     }, "Ach: ", row.avgAch.toFixed(0), "%")))))), colorTableData.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
       colSpan: 16,
@@ -4415,10 +4429,10 @@ function App() {
                   ...[
                     branches,
                     '฿'+fmtFull(totalMarket),
-                    pctMarket.toFixed(1)+'%',
+                    pctMarket.toFixed(0)+'%',
                     '฿'+fmtFull(totalBeger),
-                    pctBeger.toFixed(1)+'%',
-                    ms.toFixed(1)+'%',
+                    pctBeger.toFixed(0)+'%',
+                    ms.toFixed(0)+'%',
                     '฿'+fmtFull(Math.round(oneP)),
                     onePBeger.toFixed(2)+'%',
                     green, yellow, red
@@ -4526,6 +4540,886 @@ function App() {
       );
     }
 
+    if (tab === 11) {
+      if (!colorTableData || colorTableData.length === 0 || selectedYear === 'All' || selectedMonth === 'All') {
+        return /*#__PURE__*/React.createElement("div", {style:{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#64748b',fontSize:12,fontStyle:'italic'}},
+          "กรุณาเลือก ปี และ เดือน เพื่อเริ่มวิเคราะห์ PC"
+        );
+      }
+      const fmtN = n => Math.round(n||0).toLocaleString('th-TH');
+      const achColor = a => a >= 90 ? '#34d399' : a >= 75 ? '#fbbf24' : '#f87171';
+
+      /* ── ดึงข้อมูลจาก colorTableData ── */
+      const allBranches = colorTableData.map(row => {
+        const mData = row.months[selectedMonth];
+        const sales   = mData && mData.hasData ? (mData.beger  || 0) : 0;
+        const ach     = mData && mData.hasData ? (mData.ach    || 0) : 0;
+        const actualPC = parseFloat(row.actualPC) || 0;
+        const modelPC  = parseFloat(row.modelPC)  || 0;
+        const hasPC   = actualPC > 0;
+        const tier    = sales < 150000 ? 'low' : sales <= 300000 ? 'mid' : 'high';
+        return { branch: row.branch, mall: row.mall, sales, ach, actualPC, modelPC, hasPC, tier };
+      });
+
+      const hasPCList = allBranches.filter(b => b.hasPC);
+      const noPCList  = allBranches.filter(b => !b.hasPC);
+      const total     = allBranches.length;
+      const hasPct    = total > 0 ? hasPCList.length / total * 100 : 0;
+      const noPct     = 100 - hasPct;
+
+      /* KPI */
+      const avgHas = hasPCList.length > 0 ? hasPCList.reduce((s,b)=>s+b.sales,0)/hasPCList.length : 0;
+      const avgNo  = noPCList.length  > 0 ? noPCList.reduce((s,b)=>s+b.sales,0)/noPCList.length   : 0;
+      const totalPC= hasPCList.reduce((s,b)=>s+(b.actualPC||0),0);
+      const totSales=hasPCList.reduce((s,b)=>s+b.sales,0);
+      const perHead= totalPC > 0 ? totSales/totalPC : 0;
+      const multi  = avgNo > 0 ? (avgHas/avgNo).toFixed(1) : '—';
+
+      /* MoM — เดือนก่อนหน้า */
+      const mIdx = MONTH_ORDER.indexOf(selectedMonth);
+      const prevMonth = mIdx > 0 ? MONTH_ORDER[mIdx - 1] : null;
+      const prevAllBranches = prevMonth ? colorTableData.map(row => {
+        const mData = row.months[prevMonth];
+        const sales = mData && mData.hasData ? (mData.beger || 0) : 0;
+        const actualPC = parseFloat(row.actualPC) || 0;
+        const hasPC = actualPC > 0;
+        return { sales, hasPC };
+      }) : [];
+      const prevHasList = prevAllBranches.filter(b => b.hasPC);
+      const prevNoList  = prevAllBranches.filter(b => !b.hasPC);
+      const prevAvgHas = prevHasList.length > 0 ? prevHasList.reduce((s,b)=>s+b.sales,0)/prevHasList.length : 0;
+      const prevAvgNo  = prevNoList.length  > 0 ? prevNoList.reduce((s,b)=>s+b.sales,0)/prevNoList.length   : 0;
+      const momHas = prevAvgHas > 0 ? ((avgHas - prevAvgHas) / prevAvgHas * 100) : null;
+      const momNo  = prevAvgNo  > 0 ? ((avgNo  - prevAvgNo)  / prevAvgNo  * 100) : null;
+      const momFmt = v => v === null ? null : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+      const momHasStr = momFmt(momHas);
+      const momNoStr  = momFmt(momNo);
+      const prevMonthTH = prevMonth ? {Jan:'ม.ค.',Feb:'ก.พ.',Mar:'มี.ค.',Apr:'เม.ย.',May:'พ.ค.',Jun:'มิ.ย.',Jul:'ก.ค.',Aug:'ส.ค.',Sep:'ก.ย.',Oct:'ต.ค.',Nov:'พ.ย.',Dec:'ธ.ค.'}[prevMonth] : '';
+
+      /* Tier counts */
+      const hL=hasPCList.filter(b=>b.tier==='low').length, hM=hasPCList.filter(b=>b.tier==='mid').length, hH=hasPCList.filter(b=>b.tier==='high').length;
+      const nL=noPCList.filter(b=>b.tier==='low').length,  nM=noPCList.filter(b=>b.tier==='mid').length,  nH=noPCList.filter(b=>b.tier==='high').length;
+      const hT=hasPCList.length||1, nT=noPCList.length||1;
+      const hiPct=(hH/hT*100).toFixed(0);
+      const loNoPct=(nL/nT*100).toFixed(0);
+
+      /* state */
+      const filterChain=pcFilterChain, setFilterChain=setPcFilterChain;
+      const filterPC=pcFilterPC,       setFilterPC=setPcFilterPC;
+      const filterTier=pcFilterTier,   setFilterTier=setPcFilterTier;
+      const chainList=[...new Set(allBranches.map(b=>b.mall).filter(Boolean))].sort();
+      const filtered=allBranches.filter(b=>
+        (filterChain==='all'||b.mall===filterChain)&&
+        (filterPC==='all'||(filterPC==='has'?b.hasPC:!b.hasPC))&&
+        (filterTier==='all'||b.tier===filterTier)
+      ).sort((a,b)=>b.sales-a.sales);
+
+      const tierBadge=t=>/*#__PURE__*/React.createElement("span",{style:{display:'inline-block',padding:'1px 6px',borderRadius:3,fontSize:12,fontWeight:700,
+        background:t==='low'?'rgba(239,68,68,.15)':t==='mid'?'rgba(249,115,22,.15)':'rgba(16,185,129,.15)',
+        color:t==='low'?'#f87171':t==='mid'?'#fb923c':'#34d399'}},
+        t==='low'?'ต่ำกว่า 150,000 บาท':t==='mid'?'150,000 – 300,000 บาท':'300,000+ บาท'
+      );
+      const btnStyle=(active,col)=>({padding:'3px 9px',borderRadius:5,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',
+        border:active?'1px solid '+col:'1px solid rgba(255,255,255,.12)',
+        background:active?col+'33':'rgba(255,255,255,.05)',color:active?col:'#94a3b8'});
+
+      const tierCard=(lbl,cnt,tot2,bg,bc,col,range,bold)=>/*#__PURE__*/React.createElement("div",{style:{flex:1,minWidth:0,borderRadius:6,padding:'8px 10px',border:'1px solid '+bc,background:bg}},
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:11,fontWeight:700,color:col,letterSpacing:'.3px',marginBottom:3}},lbl),
+        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:3}},
+          /*#__PURE__*/React.createElement("span",{style:{fontSize:22,fontWeight:800,color:col,lineHeight:1}},cnt),
+          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:700,color:col,opacity:.8}},"สาขา")
+        ),
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:11,marginTop:3,color:col,opacity:bold?1:.85,fontWeight:bold?700:500}},(cnt/tot2*100).toFixed(1)+"% ในกลุ่มนี้"),
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:11,marginTop:3,opacity:.75,color:'#cbd5e1',fontWeight:500}},range)
+      );
+
+      const kpiCard=(lbl,valNode,subNode,bg,bc)=>/*#__PURE__*/React.createElement("div",{style:{borderRadius:7,padding:'7px 10px',border:'1px solid '+bc,background:bg}},
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:8,fontWeight:700,textTransform:'uppercase',letterSpacing:'.3px',marginBottom:3,color:'inherit'}},lbl),
+        valNode, subNode
+      );
+
+      return /*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',height:'100%',gap:8,overflow:'hidden'}},
+
+        /* Sub-tab bar */
+        /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:6,flexShrink:0}},
+          /*#__PURE__*/React.createElement("button",{onClick:()=>setPcSubTab('summary'),style:{padding:'4px 14px',borderRadius:20,fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid',borderColor:pcSubTab==='summary'?'#3b82f6':'rgba(255,255,255,.1)',background:pcSubTab==='summary'?'#1e3a5f':'rgba(255,255,255,.05)',color:pcSubTab==='summary'?'#60a5fa':'#64748b'}},"📊 สรุปภาพรวม"),
+          /*#__PURE__*/React.createElement("button",{onClick:()=>setPcSubTab('list'),style:{padding:'4px 14px',borderRadius:20,fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid',borderColor:pcSubTab==='list'?'#3b82f6':'rgba(255,255,255,.1)',background:pcSubTab==='list'?'#1e3a5f':'rgba(255,255,255,.05)',color:pcSubTab==='list'?'#60a5fa':'#64748b'}},"📋 รายชื่อสาขา")
+        ),
+
+        /* ══ SUMMARY ══ */
+        pcSubTab==='summary' && /*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',flex:1,gap:6,overflow:'auto'}},
+
+          /* KPI row — 4 cards */
+          /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,flexShrink:0}},
+
+            /* Card 1: สาขาทั้งหมด */
+            /*#__PURE__*/React.createElement("div",{style:{borderRadius:8,padding:'11px 14px',border:'1px solid rgba(96,165,250,.3)',background:'rgba(59,130,246,.1)'}},
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}},"สาขาทั้งหมด · "+selectedMonth+" "+selectedYear),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:3}},
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:30,fontWeight:800,color:'#60a5fa',lineHeight:1}},""+total),
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:'#60a5fa',opacity:.8,marginLeft:3}},"สาขา")
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:10,marginTop:7}},
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#64748b',marginBottom:2}},"มี PC"),
+                  /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:2}},
+                    /*#__PURE__*/React.createElement("span",{style:{fontSize:18,fontWeight:800,color:'#34d399'}},""+hasPCList.length),
+                    /*#__PURE__*/React.createElement("span",{style:{fontSize:10,color:'#34d399',opacity:.8,marginLeft:2}},"สาขา")
+                  ),
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:11,color:'#34d399',opacity:.75}},hasPct.toFixed(0)+"%")
+                ),
+                /*#__PURE__*/React.createElement("div",{style:{width:1,background:'rgba(255,255,255,.08)',alignSelf:'stretch'}}),
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#64748b',marginBottom:2}},"ไม่มี PC"),
+                  /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:2}},
+                    /*#__PURE__*/React.createElement("span",{style:{fontSize:18,fontWeight:800,color:'#f87171'}},""+noPCList.length),
+                    /*#__PURE__*/React.createElement("span",{style:{fontSize:10,color:'#f87171',opacity:.8,marginLeft:2}},"สาขา")
+                  ),
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:11,color:'#f87171',opacity:.75}},noPct.toFixed(0)+"%")
+                )
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{height:4,borderRadius:2,overflow:'hidden',display:'flex',marginTop:8,gap:1}},
+                /*#__PURE__*/React.createElement("div",{style:{width:hasPct+'%',background:'#34d399',borderRadius:'2px 0 0 2px'}}),
+                /*#__PURE__*/React.createElement("div",{style:{width:noPct+'%',background:'#f87171',borderRadius:'0 2px 2px 0'}})
+              )
+            ),
+
+            /* Card 2: Avg ยอดขาย มี PC */
+            /*#__PURE__*/React.createElement("div",{style:{borderRadius:8,padding:'11px 14px',border:'1px solid rgba(52,211,153,.3)',background:'rgba(16,185,129,.1)'}},
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#6ee7b7',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}},"Avg ยอดขาย · สาขาที่มี PC"),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:3,flexWrap:'wrap'}},
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:24,fontWeight:800,color:'#34d399',lineHeight:1,fontFamily:'monospace'}},fmtN(avgHas)),
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'#34d399',opacity:.8,marginLeft:3}},"บาท / สาขา")
+              ),
+              momHasStr && /*#__PURE__*/React.createElement("div",{style:{marginTop:7,borderTop:'1px solid rgba(255,255,255,.08)',paddingTop:7,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#94a3b8'}},"vs "+prevMonthTH+" ("+fmtN(Math.round(prevAvgHas))+" บ./สาขา)"),
+                ),
+                /*#__PURE__*/React.createElement("span",{style:{
+                  display:'inline-flex',alignItems:'center',gap:3,
+                  fontSize:12,fontWeight:700,padding:'2px 8px',borderRadius:6,
+                  background: momHas >= 0 ? 'rgba(52,211,153,.15)' : 'rgba(248,113,113,.15)',
+                  color: momHas >= 0 ? '#34d399' : '#f87171'
+                }},
+                  /*#__PURE__*/React.createElement("span",null, momHas >= 0 ? '▲' : '▼'),
+                  momHasStr
+                )
+              )
+            ),
+
+            /* Card 3: Avg ยอดขาย ไม่มี PC */
+            /*#__PURE__*/React.createElement("div",{style:{borderRadius:8,padding:'11px 14px',border:'1px solid rgba(248,113,113,.3)',background:'rgba(239,68,68,.1)'}},
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#fca5a5',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}},"Avg ยอดขาย · สาขาที่ไม่มี PC"),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:3,flexWrap:'wrap'}},
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:24,fontWeight:800,color:'#f87171',lineHeight:1,fontFamily:'monospace'}},fmtN(avgNo)),
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'#f87171',opacity:.8,marginLeft:3}},"บาท / สาขา")
+              ),
+              momNoStr && /*#__PURE__*/React.createElement("div",{style:{marginTop:7,borderTop:'1px solid rgba(255,255,255,.08)',paddingTop:7,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#94a3b8'}},"vs "+prevMonthTH+" ("+fmtN(Math.round(prevAvgNo))+" บ./สาขา)"),
+                ),
+                /*#__PURE__*/React.createElement("span",{style:{
+                  display:'inline-flex',alignItems:'center',gap:3,
+                  fontSize:12,fontWeight:700,padding:'2px 8px',borderRadius:6,
+                  background: momNo >= 0 ? 'rgba(52,211,153,.15)' : 'rgba(248,113,113,.15)',
+                  color: momNo >= 0 ? '#34d399' : '#f87171'
+                }},
+                  /*#__PURE__*/React.createElement("span",null, momNo >= 0 ? '▲' : '▼'),
+                  momNoStr
+                )
+              )
+            ),
+
+            /* Card 4: Avg ยอด/หัว PC */
+            /*#__PURE__*/React.createElement("div",{style:{borderRadius:8,padding:'11px 14px',border:'1px solid rgba(234,179,8,.4)',background:'rgba(234,179,8,.1)'}},
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#fef08a',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}},"AVG Sales Per Head PC"),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:3,flexWrap:'wrap'}},
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:24,fontWeight:800,color:'#eab308',lineHeight:1,fontFamily:'monospace'}},fmtN(perHead)),
+                /*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'#eab308',opacity:.8,marginLeft:3}},"บาท / คน / เดือน")
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:10,marginTop:7}},
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#64748b',marginBottom:2}},"PC รวมทั้งหมด"),
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:14,fontWeight:700,color:'#eab308'}},totalPC>0?fmtN(totalPC)+" คน":"—")
+                ),
+                /*#__PURE__*/React.createElement("div",{style:{width:1,background:'rgba(255,255,255,.08)',alignSelf:'stretch'}}),
+                /*#__PURE__*/React.createElement("div",null,
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:'#64748b',marginBottom:2}},"ยอดรวมมี PC"),
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:13,fontWeight:700,color:'#eab308',fontFamily:'monospace'}},fmtN(totSales)+" บาท")
+                )
+              )
+            )
+          ),
+
+
+          /* Middle row */
+          /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'1.1fr 1fr',gap:7,flex:1,minHeight:0,overflow:'hidden'}},
+
+            /* LEFT */
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',gap:5,overflow:'hidden'}},
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:11,fontWeight:700,color:'#34d399',display:'flex',alignItems:'center',gap:4,flexShrink:0}},
+                /*#__PURE__*/React.createElement("span",{style:{width:7,height:7,borderRadius:'50%',background:'#34d399',display:'inline-block'}}),
+                "สาขามี PC ("+hasPCList.length+") · จำแนกตามยอดขายเดือน "+selectedMonth
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:5,flexShrink:0}},
+                tierCard('ยอดต่ำ',hL,hT,'rgba(185,28,28,.15)','rgba(239,68,68,.3)','#f87171','ต่ำกว่า 150,000 บาท',false),
+                tierCard('ยอดกลาง',hM,hT,'rgba(194,65,12,.15)','rgba(249,115,22,.3)','#fb923c','150,000 – 300,000 บาท',false),
+                tierCard('ยอดสูง',hH,hT,'rgba(4,120,87,.15)','rgba(16,185,129,.3)','#34d399','300,000 บาท ขึ้นไป',true)
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{fontSize:11,fontWeight:700,color:'#f87171',display:'flex',alignItems:'center',gap:4,flexShrink:0,marginTop:2}},
+                /*#__PURE__*/React.createElement("span",{style:{width:7,height:7,borderRadius:'50%',background:'#f87171',display:'inline-block'}}),
+                "สาขาไม่มี PC ("+noPCList.length+") · จำแนกตามยอดขายเดือน "+selectedMonth
+              ),
+              /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:5,flexShrink:0}},
+                tierCard('ยอดต่ำ',nL,nT,'rgba(185,28,28,.15)','rgba(239,68,68,.3)','#f87171','ต่ำกว่า 150,000 บาท',true),
+                tierCard('ยอดกลาง',nM,nT,'rgba(194,65,12,.15)','rgba(249,115,22,.3)','#fb923c','150,000 – 300,000 บาท',false),
+                tierCard('ยอดสูง',nH,nT,'rgba(4,120,87,.15)','rgba(16,185,129,.3)','#34d399','300,000 บาท ขึ้นไป',false)
+              ),
+              /* Top 3 */
+              /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}},
+                [['🏆 Top 5 · มี PC',hasPCList,'#34d399'],['⚠️ Top 5 · ไม่มี PC',noPCList,'#f87171']].map(([lbl,list,col])=>{
+                  const top3=[...list].sort((a,b)=>b.sales-a.sales).slice(0,5);
+                  return /*#__PURE__*/React.createElement("div",{key:lbl,style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:6,padding:'6px 8px',overflow:'hidden'}},
+                    /*#__PURE__*/React.createElement("div",{style:{fontSize:8,fontWeight:700,color:col,marginBottom:5}},lbl+" ยอดสูงสุด"),
+                    top3.length===0
+                      ? /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:'#475569',fontStyle:'italic'}},"ไม่มีข้อมูล")
+                      : top3.map((b,i)=>/*#__PURE__*/React.createElement("div",{key:b.branch,style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:3,paddingBottom:3,borderBottom:i<4?'1px solid rgba(255,255,255,.04)':'none'}},
+                          /*#__PURE__*/React.createElement("div",null,
+                            /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:700,color:'#e2e8f0'}},(i+1)+". "+b.branch),
+                            /*#__PURE__*/React.createElement("div",{style:{fontSize:8,color:'#64748b'}},b.mall)
+                          ),
+                          /*#__PURE__*/React.createElement("div",{style:{textAlign:'right'}},
+                            /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:800,color:col,fontFamily:'monospace'}},fmtN(b.sales)),
+                            
+                          )
+                        ))
+                  );
+                })
+              )
+            ),
+
+            /* RIGHT */
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',gap:6,overflow:'hidden'}},
+              /* Comparison bar */
+              /*#__PURE__*/React.createElement("div",{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:7,padding:'10px 12px',flexShrink:0}},
+                /*#__PURE__*/React.createElement("div",{style:{fontSize:11,fontWeight:700,color:'#94a3b8',marginBottom:5}},"สัดส่วนระดับยอดขาย — มี PC vs ไม่มี PC"),
+                /* Legend ย้ายขึ้นมาก่อน bar */
+                /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:14,marginBottom:8}},
+                  [['#b91c1c','ยอดต่ำกว่า 150,000 บาท'],['#c2410c','150,001 – 300,000 บาท'],['#047857','300,000 บาท ขึ้นไป']].map(([c,l])=>
+                    /*#__PURE__*/React.createElement("div",{key:l,style:{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#94a3b8',fontWeight:500}},
+                      /*#__PURE__*/React.createElement("span",{style:{width:10,height:10,borderRadius:2,background:c,display:'inline-block',flexShrink:0}}),l
+                    )
+                  )
+                ),
+                [['มี PC',hasPCList.length,hL,hM,hH,hT,'#34d399'],['ไม่มี PC',noPCList.length,nL,nM,nH,nT,'#f87171']].map(([lbl,cnt,low,mid,hi,tot2,col])=>
+                  /*#__PURE__*/React.createElement("div",{key:lbl,style:{marginBottom:8}},
+                    /*#__PURE__*/React.createElement("div",{style:{display:'flex',justifyContent:'space-between',marginBottom:3}},
+                      /*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:col,fontWeight:700}},lbl+" ",/*#__PURE__*/React.createElement("span",{style:{color:'#64748b',fontWeight:400,fontSize:11}},"("+cnt+" สาขา)")),
+                      /*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'#64748b'}},(low/tot2*100).toFixed(0)+"% / "+(mid/tot2*100).toFixed(0)+"% / "+(hi/tot2*100).toFixed(0)+"%")
+                    ),
+                    /*#__PURE__*/React.createElement("div",{style:{display:'flex',height:26,borderRadius:4,overflow:'hidden',gap:1}},
+                      /*#__PURE__*/React.createElement("div",{style:{width:(low/tot2*100)+'%',background:'#b91c1c',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},(low/tot2*100)>8?(low/tot2*100).toFixed(0)+'%':''),
+                      /*#__PURE__*/React.createElement("div",{style:{width:(mid/tot2*100)+'%',background:'#c2410c',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff'}},(mid/tot2*100)>8?(mid/tot2*100).toFixed(0)+'%':''),
+                      /*#__PURE__*/React.createElement("div",{style:{width:(hi/tot2*100)+'%',background:'#047857',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff'}},(hi/tot2*100)>8?(hi/tot2*100).toFixed(0)+'%':'')
+                    )
+                  )
+                )
+              ),
+              /* Chain summary table 2-col — shared header, no scroll */
+              (()=>{
+                const chainColors = {'Homepro':'#a78bfa','Megahome':'#67e8f9','Global House':'#fb923c','DoHome':'#34d399','ดูโฮม':'#34d399','BNB Home':'#94a3b8','CRC':'#f472b6','ศิริหาดใหญ่':'#94a3b8','โกลบอลเฮ้าส์':'#fb923c','โกลบอล เฮ้าส์':'#fb923c','HomeHub':'#60a5fa','Hybrid':'#a3e635','โอมูญ':'#f9a8d4','Homeshop':'#c4b5fd'};
+                const chainData = {};
+                allBranches.forEach(b => {
+                  const chain = b.mall || 'อื่นๆ';
+                  if (!chainData[chain]) chainData[chain] = { sales:0, pc:0, branches:0 };
+                  chainData[chain].sales += b.sales;
+                  chainData[chain].pc += b.actualPC || 0;
+                  chainData[chain].branches += 1;
+                });
+                const rows = Object.entries(chainData).sort((a,b)=>b[1].sales-a[1].sales);
+                const totalSalesAll = rows.reduce((s,[,v])=>s+v.sales,0);
+                const totalPCAll    = rows.reduce((s,[,v])=>s+v.pc,0);
+                const half = Math.ceil(rows.length/2);
+                const leftRows  = rows.slice(0, half);
+                const rightRows = rows.slice(half);
+
+                const hCell = (txt, right, gold) => /*#__PURE__*/React.createElement("th",{style:{padding:'3px 5px',fontSize:9,fontWeight:700,color:gold?'#eab308':'#475569',textTransform:'uppercase',letterSpacing:'.3px',textAlign:right?'right':'left',borderBottom:'1px solid rgba(255,255,255,.1)',whiteSpace:'nowrap'}},txt);
+                const mkRow = ([chain,v]) => {
+                  const col = chainColors[chain] || '#94a3b8';
+                  const avg = v.pc > 0 ? Math.round(v.sales/v.pc) : 0;
+                  return /*#__PURE__*/React.createElement("tr",{key:chain,style:{borderBottom:'1px solid rgba(255,255,255,.04)'}},
+                    /*#__PURE__*/React.createElement("td",{style:{padding:'4px 5px',verticalAlign:'middle'}},
+                      /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:5}},
+                        /*#__PURE__*/React.createElement("span",{style:{width:7,height:7,borderRadius:'50%',background:col,display:'inline-block',flexShrink:0}}),
+                        /*#__PURE__*/React.createElement("div",null,
+                          /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#e2e8f0',whiteSpace:'nowrap'}},chain),
+                          /*#__PURE__*/React.createElement("div",{style:{fontSize:8,color:'#64748b'}},v.branches+" สาขา")
+                        )
+                      )
+                    ),
+                    /*#__PURE__*/React.createElement("td",{style:{padding:'4px 5px',textAlign:'right',fontSize:10,fontWeight:700,fontFamily:'monospace',color:'#e2e8f0',whiteSpace:'nowrap'}},fmtN(v.sales)),
+                    /*#__PURE__*/React.createElement("td",{style:{padding:'4px 5px',textAlign:'right',fontSize:11,fontWeight:800,fontFamily:'monospace',color:col,whiteSpace:'nowrap'}},v.pc>0?fmtN(v.pc):'—'),
+                    /*#__PURE__*/React.createElement("td",{style:{padding:'4px 5px',textAlign:'right',fontSize:11,fontWeight:800,fontFamily:'monospace',color:'#eab308',whiteSpace:'nowrap'}},avg>0?fmtN(avg):'—')
+                  );
+                };
+                const mkTable = (list) => /*#__PURE__*/React.createElement("table",{style:{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}},
+                  /*#__PURE__*/React.createElement("thead",null,
+                    /*#__PURE__*/React.createElement("tr",null,
+                      hCell('ห้าง',false,false),
+                      hCell('ยอดรวม (บาท)',true,false),
+                      hCell('PC (คน)',true,false),
+                      hCell('Avg/หัว',true,true)
+                    )
+                  ),
+                  /*#__PURE__*/React.createElement("tbody",null, list.map(mkRow))
+                );
+
+                return /*#__PURE__*/React.createElement("div",{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.08)',borderRadius:7,padding:'8px 11px',flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}},
+                  /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:'#93c5fd',marginBottom:7,flexShrink:0}},"สรุป AVG Sales Per Head · จำแนกตามห้าง · "+selectedMonth+" "+selectedYear),
+                  /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'1fr 1px 1fr',gap:'0 10px',flex:1,minHeight:0,overflow:'hidden'}},
+                    /*#__PURE__*/React.createElement("div",{style:{overflow:'hidden'}}, mkTable(leftRows)),
+                    /*#__PURE__*/React.createElement("div",{style:{background:'rgba(255,255,255,.07)'}}),
+                    /*#__PURE__*/React.createElement("div",{style:{overflow:'hidden'}}, mkTable(rightRows))
+                  ),
+                  /*#__PURE__*/React.createElement("div",{style:{display:'flex',justifyContent:'space-between',alignItems:'center',borderTop:'1px solid rgba(255,255,255,.15)',paddingTop:5,marginTop:4,flexShrink:0}},
+                    /*#__PURE__*/React.createElement("span",{style:{fontSize:10,fontWeight:800,color:'#60a5fa'}},"รวมทั้งหมด"),
+                    /*#__PURE__*/React.createElement("div",{style:{display:'flex',gap:18,alignItems:'baseline'}},
+                      /*#__PURE__*/React.createElement("div",null,
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',marginRight:5}},"ยอดรวม"),
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:12,fontWeight:800,fontFamily:'monospace',color:'#60a5fa'}},fmtN(totalSalesAll)+" บาท")
+                      ),
+                      /*#__PURE__*/React.createElement("div",null,
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',marginRight:5}},"PC รวม"),
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:12,fontWeight:800,fontFamily:'monospace',color:'#60a5fa'}},fmtN(totalPCAll)+" คน")
+                      ),
+                      /*#__PURE__*/React.createElement("div",null,
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',marginRight:5}},"Sales Per Head"),
+                        /*#__PURE__*/React.createElement("span",{style:{fontSize:14,fontWeight:800,fontFamily:'monospace',color:'#fbbf24'}},totalPCAll>0?fmtN(Math.round(totalSalesAll/totalPCAll))+" บาท":"—")
+                      )
+                    )
+                  )
+                );
+              })()
+            )
+          )
+        ),
+
+        /* ══ LIST ══ */
+        pcSubTab==='list' && /*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',flex:1,gap:6,overflow:'hidden'}},
+          /* filter */
+          /*#__PURE__*/React.createElement("div",{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:7,padding:'7px 10px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',flexShrink:0}},
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:5}},
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',fontWeight:700}},"ห้าง"),
+              /*#__PURE__*/React.createElement("select",{value:filterChain,onChange:e=>setFilterChain(e.target.value),style:{background:'#1e3a5f',color:'#e2e8f0',border:'1px solid rgba(96,165,250,.25)',borderRadius:5,padding:'3px 22px 3px 7px',fontSize:10,fontWeight:600,cursor:'pointer',outline:'none',minWidth:120,backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",backgroundRepeat:'no-repeat',backgroundPosition:'right 5px center',appearance:'none',WebkitAppearance:'none'}},
+                /*#__PURE__*/React.createElement("option",{value:'all'},"ทั้งหมด"),
+                chainList.map(c=>/*#__PURE__*/React.createElement("option",{key:c,value:c},c))
+              )
+            ),
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:4}},
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',fontWeight:700}},"PC"),
+              ['all','has','no'].map(v=>/*#__PURE__*/React.createElement("button",{key:v,onClick:()=>setFilterPC(v),style:btnStyle(filterPC===v,v==='has'?'#34d399':v==='no'?'#f87171':'#60a5fa')},
+                v==='all'?'ทั้งหมด':v==='has'?[/*#__PURE__*/React.createElement("span",{key:'d',style:{width:5,height:5,borderRadius:'50%',background:'#34d399',display:'inline-block',marginRight:3}}),'มี PC']:[/*#__PURE__*/React.createElement("span",{key:'d',style:{width:5,height:5,borderRadius:'50%',background:'#f87171',display:'inline-block',marginRight:3}}),'ไม่มี PC']
+              ))
+            ),
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:4}},
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:9,color:'#64748b',fontWeight:700}},"ยอดขาย"),
+              [['all','ทุกระดับ','#60a5fa'],['low','ต่ำกว่า 150,000 บาท','#f87171'],['mid','150,000 – 300,000 บาท','#fbbf24'],['high','300,000+ บาท','#34d399']].map(([v,lbl,col])=>
+                /*#__PURE__*/React.createElement("button",{key:v,onClick:()=>setFilterTier(v),style:{...btnStyle(filterTier===v,col),padding:'3px 14px',whiteSpace:'nowrap'}},lbl)
+              )
+            ),
+            /*#__PURE__*/React.createElement("button",{onClick:()=>{setFilterChain('all');setFilterPC('all');setFilterTier('all');},style:{fontSize:9,color:'#64748b',cursor:'pointer',background:'none',border:'none',padding:0}},"↺ รีเซ็ต"),
+            /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'baseline',gap:5,background:'rgba(15,31,56,0.9)',border:'1px solid rgba(96,165,250,0.2)',borderRadius:5,padding:'4px 12px',marginLeft:'auto',borderLeft:'3px solid #3b82f6'}},
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:10,color:'#64748b',fontWeight:500}},"พบ"),
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:22,fontWeight:800,color:'#60a5fa',lineHeight:1,fontFamily:'monospace'}},filtered.length),
+              /*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'#93c5fd',fontWeight:600}},"สาขา")
+            )
+          ),
+          /*#__PURE__*/React.createElement("div",{style:{display:'flex',justifyContent:'flex-start',flexShrink:0}},
+            /*#__PURE__*/React.createElement("div",{style:{fontSize:12,color:'#64748b'}},"เรียงตามยอดขาย (มาก → น้อย)")
+          ),
+          /*#__PURE__*/React.createElement("div",{style:{flex:1,overflow:'auto',minHeight:0}},
+            /*#__PURE__*/React.createElement("table",{style:{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}},
+              /*#__PURE__*/React.createElement("thead",null,
+                /*#__PURE__*/React.createElement("tr",{style:{background:'#0f2440',position:'sticky',top:0,zIndex:1}},
+                  [{h:'ชื่อสาขา',a:'left',hl:false,w:'33%'},{h:'ห้าง',a:'left',hl:false,w:'11%'},{h:'PC',a:'center',hl:false,w:'8%'},{h:'Model / Act.',a:'center',hl:true,w:'10%'},{h:'ยอด/หัว PC (บาท)',a:'right',hl:true,w:'13%'},{h:'ยอดขาย (บาท)',a:'right',hl:false,w:'14%'},{h:'Ach%',a:'right',hl:false,w:'11%'}
+                  ].map((col,i)=>/*#__PURE__*/React.createElement("th",{key:i,style:{fontSize:12,fontWeight:700,color:col.hl?'#fbbf24':'#64748b',textAlign:col.a,padding:'5px 8px',borderBottom:'1px solid rgba(255,255,255,.07)',whiteSpace:'nowrap',width:col.w,background:col.hl?'rgba(251,191,36,.06)':undefined,borderLeft:col.hl?'2px solid rgba(251,191,36,.35)':undefined,borderRight:col.hl?'2px solid rgba(251,191,36,.35)':undefined}},col.h))
+                )
+              ),
+              /*#__PURE__*/React.createElement("tbody",null,
+                filtered.length===0
+                  ? /*#__PURE__*/React.createElement("tr",null,/*#__PURE__*/React.createElement("td",{colSpan:7,style:{textAlign:'center',color:'#475569',padding:'20px',fontSize:13}},"ไม่พบสาขาตามเงื่อนไขที่เลือก"))
+                  : filtered.map((b,idx)=>/*#__PURE__*/React.createElement("tr",{key:b.branch,style:{borderBottom:'1px solid rgba(255,255,255,.04)',background:idx%2===0?'transparent':'rgba(255,255,255,.02)'}},
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:700,color:'#e2e8f0'}},b.branch),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:12,color:'#94a3b8'}},b.mall),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',textAlign:'center'}},/*#__PURE__*/React.createElement("span",{style:{display:'inline-block',padding:'1px 6px',borderRadius:3,fontSize:12,fontWeight:700,background:b.hasPC?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)',color:b.hasPC?'#34d399':'#f87171'}},b.hasPC?'มี PC':'ไม่มี PC')),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',textAlign:'center',background:'rgba(251,191,36,.04)',borderLeft:'2px solid rgba(251,191,36,.25)',borderRight:'1px solid rgba(251,191,36,.12)'}},b.hasPC&&b.actualPC>0?/*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:2}},/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,color:'#94a3b8'}},b.modelPC>0?b.modelPC:'–'),/*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'rgba(255,255,255,0.25)',margin:'0 1px'}},'/'),/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,color:b.actualPC<b.modelPC?'#f87171':'#60a5fa'}},b.actualPC)):/*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:'#475569'}},'—')),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',textAlign:'right',background:'rgba(251,191,36,.04)',borderLeft:'1px solid rgba(251,191,36,.12)',borderRight:'2px solid rgba(251,191,36,.25)'}},b.hasPC&&b.actualPC>0?/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,fontFamily:'monospace',color:achColor(b.ach)}},fmtN(b.sales/b.actualPC)):/*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:'#475569'}},'—')),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:700,color:'#e2e8f0',textAlign:'right',fontFamily:'monospace'}},fmtN(b.sales)),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:800,color:achColor(b.ach),textAlign:'right'}},b.ach>0?b.ach.toFixed(0)+'%':'–')
+                    ))
+              )
+            )
+          )
+        )
+      );
+    }
+
+    if (tab === 12) {
+      const fmtM = n => { const v=Math.round((n||0)/1000); return (v>=0?'+':'')+v.toLocaleString('th-TH')+'k'; };
+      const fmtN = n => Math.round(n||0).toLocaleString('th-TH');
+      const fmtMB = n => (Math.round((n||0)/1e5)/10).toFixed(1)+'M';
+      const aC = a => a>=90?'#34d399':a>=85?'#fbbf24':'#f87171';
+      const tC = a => a>=90?{bg:'#34d399',tx:'#064e3b'}:a>=85?{bg:'#fbbf24',tx:'#78350f'}:{bg:'#f87171',tx:'#7f1d1d'};
+      const MONTHS_LABEL = ['J','F','M','A','M'];
+      const MONTHS_KEY = ['Jan','Feb','Mar','Apr','May'];
+      const REG_SHORT = {'ภาคกลาง':'กลาง','ภาคตะวันออกเฉียงเหนือ':'อีสาน','ภาคตะวันออก':'ตอ.','ภาคใต้':'ใต้','ภาคเหนือ':'เหนือ','ภาคตะวันตก':'ตต.'};
+      const REG_COLOR = {'ภาคกลาง':'#60a5fa','ภาคตะวันออกเฉียงเหนือ':'#fbbf24','ภาคตะวันออก':'#a78bfa','ภาคใต้':'#34d399','ภาคเหนือ':'#fb923c','ภาคตะวันตก':'#94a3b8'};
+      const LFL_DATA = {"กฤษดา  รุ่งกิจคณธร": {"monthly": {"Jan": {"act26": 3717246, "act25": 3801576, "growth": -2.2, "lfl_br": 10, "total_br": 10}, "Feb": {"act26": 3488020, "act25": 3608324, "growth": -3.3, "lfl_br": 10, "total_br": 10}, "Mar": {"act26": 4571876, "act25": 4206069, "growth": 8.7, "lfl_br": 10, "total_br": 10}, "Apr": {"act26": 4318775, "act25": 3782089, "growth": 14.2, "lfl_br": 10, "total_br": 10}, "May": {"act26": 4479819, "act25": 3386788, "growth": 32.3, "lfl_br": 10, "total_br": 10}}}, "กัฌปนาทมณี  อนุมาตย์": {"monthly": {"Jan": {"act26": 7558674, "act25": 8638045, "growth": -12.5, "lfl_br": 16, "total_br": 16}, "Feb": {"act26": 7521192, "act25": 8768589, "growth": -14.2, "lfl_br": 16, "total_br": 16}, "Mar": {"act26": 8751202, "act25": 8974871, "growth": -2.5, "lfl_br": 16, "total_br": 16}, "Apr": {"act26": 8515187, "act25": 8027589, "growth": 6.1, "lfl_br": 16, "total_br": 16}, "May": {"act26": 8734876, "act25": 8566341, "growth": 2.0, "lfl_br": 16, "total_br": 16}}}, "กิติยาภรณ์  นีระมนต์": {"monthly": {"Jan": {"act26": 4198286, "act25": 4495228, "growth": -6.6, "lfl_br": 14, "total_br": 14}, "Feb": {"act26": 4347511, "act25": 4969977, "growth": -12.5, "lfl_br": 14, "total_br": 14}, "Mar": {"act26": 5478477, "act25": 6009449, "growth": -8.8, "lfl_br": 14, "total_br": 14}, "Apr": {"act26": 4464651, "act25": 5008507, "growth": -10.9, "lfl_br": 14, "total_br": 14}, "May": {"act26": 4441785, "act25": 4281676, "growth": 3.7, "lfl_br": 14, "total_br": 14}}}, "ก้องเกียรติ  ช้อยชาญชัยกุล": {"monthly": {"Jan": {"act26": 3899605, "act25": 3417640, "growth": 14.1, "lfl_br": 8, "total_br": 8}, "Feb": {"act26": 3925141, "act25": 3692067, "growth": 6.3, "lfl_br": 8, "total_br": 8}, "Mar": {"act26": 4076151, "act25": 4544775, "growth": -10.3, "lfl_br": 8, "total_br": 8}, "Apr": {"act26": 4198437, "act25": 3526352, "growth": 19.1, "lfl_br": 8, "total_br": 8}, "May": {"act26": 3617209, "act25": 3350099, "growth": 8.0, "lfl_br": 8, "total_br": 8}}}, "จิตรลดา ศรีสวัสดิ์": {"monthly": {"Jan": {"act26": 7313683, "act25": 7340806, "growth": -0.4, "lfl_br": 14, "total_br": 14}, "Feb": {"act26": 7009227, "act25": 7840095, "growth": -10.6, "lfl_br": 14, "total_br": 14}, "Mar": {"act26": 9421584, "act25": 8896624, "growth": 5.9, "lfl_br": 14, "total_br": 14}, "Apr": {"act26": 8616140, "act25": 7343255, "growth": 17.3, "lfl_br": 14, "total_br": 14}, "May": {"act26": 7619415, "act25": 7354452, "growth": 3.6, "lfl_br": 14, "total_br": 14}}}, "ชุติมันต์   ชัยชนะ": {"monthly": {"Jan": {"act26": 5990939, "act25": 5233106, "growth": 14.5, "lfl_br": 12, "total_br": 12}, "Feb": {"act26": 5541066, "act25": 5323027, "growth": 4.1, "lfl_br": 12, "total_br": 12}, "Mar": {"act26": 6058357, "act25": 6544384, "growth": -7.4, "lfl_br": 12, "total_br": 12}, "Apr": {"act26": 6507364, "act25": 5685056, "growth": 14.5, "lfl_br": 12, "total_br": 12}, "May": {"act26": 5682520, "act25": 5588833, "growth": 1.7, "lfl_br": 12, "total_br": 12}}}, "ชไมพร  วรจักร์": {"monthly": {"Jan": {"act26": 7821013, "act25": 7227977, "growth": 8.2, "lfl_br": 21, "total_br": 22}, "Feb": {"act26": 7096588, "act25": 6996309, "growth": 1.4, "lfl_br": 21, "total_br": 23}, "Mar": {"act26": 8590728, "act25": 7909809, "growth": 8.6, "lfl_br": 21, "total_br": 23}, "Apr": {"act26": 7822565, "act25": 6662152, "growth": 17.4, "lfl_br": 21, "total_br": 23}, "May": {"act26": 7575374, "act25": 6416452, "growth": 18.1, "lfl_br": 21, "total_br": 23}}}, "ณัฏฐ์วัฒน์  คำเกิด": {"monthly": {"Jan": {"act26": 11954670, "act25": 12431611, "growth": -3.8, "lfl_br": 18, "total_br": 18}, "Feb": {"act26": 11354958, "act25": 12568079, "growth": -9.7, "lfl_br": 18, "total_br": 18}, "Mar": {"act26": 14647612, "act25": 13915726, "growth": 5.3, "lfl_br": 17, "total_br": 17}, "Apr": {"act26": 13529142, "act25": 12245210, "growth": 10.5, "lfl_br": 17, "total_br": 17}, "May": {"act26": 11136755, "act25": 10315100, "growth": 8.0, "lfl_br": 17, "total_br": 17}}}, "ณัฐพล   สิงห์โต": {"monthly": {"Jan": {"act26": 7244386, "act25": 7687791, "growth": -5.8, "lfl_br": 17, "total_br": 17}, "Feb": {"act26": 6769071, "act25": 7721670, "growth": -12.3, "lfl_br": 17, "total_br": 17}, "Mar": {"act26": 8251471, "act25": 9545851, "growth": -13.6, "lfl_br": 17, "total_br": 17}, "Apr": {"act26": 7365415, "act25": 7561963, "growth": -2.6, "lfl_br": 17, "total_br": 17}, "May": {"act26": 7602777, "act25": 7743886, "growth": -1.8, "lfl_br": 17, "total_br": 17}}}, "ณัฐภาสรณ์  ศรีสวัสดิ์": {"monthly": {"Jan": {"act26": 7045357, "act25": 6594629, "growth": 6.8, "lfl_br": 17, "total_br": 17}, "Feb": {"act26": 6724603, "act25": 7124308, "growth": -5.6, "lfl_br": 17, "total_br": 17}, "Mar": {"act26": 8987403, "act25": 8403247, "growth": 7.0, "lfl_br": 17, "total_br": 17}, "Apr": {"act26": 7738170, "act25": 6943563, "growth": 11.4, "lfl_br": 17, "total_br": 17}, "May": {"act26": 7972594, "act25": 6656926, "growth": 19.8, "lfl_br": 17, "total_br": 17}}}, "ณัฐวุฒิ  ตะมะวิโมก": {"monthly": {"Jan": {"act26": 9761091, "act25": 10510613, "growth": -7.1, "lfl_br": 17, "total_br": 17}, "Feb": {"act26": 9586761, "act25": 10283493, "growth": -6.8, "lfl_br": 17, "total_br": 17}, "Mar": {"act26": 11539385, "act25": 11385545, "growth": 1.4, "lfl_br": 17, "total_br": 18}, "Apr": {"act26": 9203099, "act25": 9221375, "growth": -0.2, "lfl_br": 17, "total_br": 18}, "May": {"act26": 9541046, "act25": 8763223, "growth": 8.9, "lfl_br": 17, "total_br": 18}}}, "ทวีโชค  จันทร์นอก": {"monthly": {"Jan": {"act26": 5175210, "act25": 5545210, "growth": -6.7, "lfl_br": 16, "total_br": 17}, "Feb": {"act26": 4696623, "act25": 6045415, "growth": -22.3, "lfl_br": 16, "total_br": 17}, "Mar": {"act26": 6459397, "act25": 6667621, "growth": -3.1, "lfl_br": 16, "total_br": 17}, "Apr": {"act26": 6205326, "act25": 5473298, "growth": 13.4, "lfl_br": 16, "total_br": 17}, "May": {"act26": 6173140, "act25": 5025632, "growth": 22.8, "lfl_br": 16, "total_br": 17}}}, "ทานตะวัน  ภูวรณ์": {"monthly": {"Jan": {"act26": 7492902, "act25": 7481458, "growth": 0.2, "lfl_br": 11, "total_br": 11}, "Feb": {"act26": 7095947, "act25": 6976617, "growth": 1.7, "lfl_br": 11, "total_br": 11}, "Mar": {"act26": 8498915, "act25": 8387050, "growth": 1.3, "lfl_br": 11, "total_br": 11}, "Apr": {"act26": 7594107, "act25": 7535087, "growth": 0.8, "lfl_br": 11, "total_br": 12}, "May": {"act26": 7025981, "act25": 7856396, "growth": -10.6, "lfl_br": 11, "total_br": 12}}}, "นภัสนันท์  นุกิจ": {"monthly": {"Jan": {"act26": 5849151, "act25": 6011474, "growth": -2.7, "lfl_br": 16, "total_br": 17}, "Feb": {"act26": 5068401, "act25": 5747442, "growth": -11.8, "lfl_br": 16, "total_br": 18}, "Mar": {"act26": 6075403, "act25": 6075068, "growth": 0.0, "lfl_br": 16, "total_br": 19}, "Apr": {"act26": 5246336, "act25": 5395984, "growth": -2.8, "lfl_br": 16, "total_br": 19}, "May": {"act26": 5573944, "act25": 5371869, "growth": 3.8, "lfl_br": 16, "total_br": 19}}}, "นฤมล  แหละหมัด": {"monthly": {"Jan": {"act26": 9504175, "act25": 5117656, "growth": 85.7, "lfl_br": 13, "total_br": 13}, "Feb": {"act26": 7378452, "act25": 5384600, "growth": 37.0, "lfl_br": 13, "total_br": 13}, "Mar": {"act26": 8004894, "act25": 5936000, "growth": 34.9, "lfl_br": 13, "total_br": 13}, "Apr": {"act26": 7804971, "act25": 5173864, "growth": 50.9, "lfl_br": 13, "total_br": 13}, "May": {"act26": 7397237, "act25": 4983970, "growth": 48.4, "lfl_br": 13, "total_br": 13}}}, "ปรัศนีย์  พิสุทธิเสรีวงศ์": {"monthly": {"Jan": {"act26": 10376455, "act25": 9143610, "growth": 13.5, "lfl_br": 15, "total_br": 15}, "Feb": {"act26": 9743784, "act25": 8403644, "growth": 15.9, "lfl_br": 15, "total_br": 15}, "Mar": {"act26": 11011378, "act25": 9928260, "growth": 10.9, "lfl_br": 15, "total_br": 15}, "Apr": {"act26": 9387694, "act25": 8306822, "growth": 13.0, "lfl_br": 15, "total_br": 15}, "May": {"act26": 9183689, "act25": 7800261, "growth": 17.7, "lfl_br": 15, "total_br": 15}}}, "มินท์มันตา  จิโรจชัยเกียรติ": {"monthly": {"Jan": {"act26": 9166453, "act25": 7676807, "growth": 19.4, "lfl_br": 19, "total_br": 19}, "Feb": {"act26": 8158935, "act25": 7547302, "growth": 8.1, "lfl_br": 19, "total_br": 19}, "Mar": {"act26": 9804021, "act25": 9185719, "growth": 6.7, "lfl_br": 19, "total_br": 19}, "Apr": {"act26": 8689491, "act25": 8031984, "growth": 8.2, "lfl_br": 19, "total_br": 19}, "May": {"act26": 9006328, "act25": 7994693, "growth": 12.7, "lfl_br": 19, "total_br": 19}}}, "วชิระ  บุตรนวน": {"monthly": {"Jan": {"act26": 6137646, "act25": 5294092, "growth": 15.9, "lfl_br": 15, "total_br": 15}, "Feb": {"act26": 6779670, "act25": 5560209, "growth": 21.9, "lfl_br": 15, "total_br": 15}, "Mar": {"act26": 7415235, "act25": 6205685, "growth": 19.5, "lfl_br": 15, "total_br": 15}, "Apr": {"act26": 7026880, "act25": 5702726, "growth": 23.2, "lfl_br": 15, "total_br": 15}, "May": {"act26": 6685615, "act25": 4921086, "growth": 35.9, "lfl_br": 15, "total_br": 15}}}, "ศุทธสิทธิ์ เหมฤดี": {"monthly": {"Jan": {"act26": 4570775, "act25": 5360891, "growth": -14.7, "lfl_br": 14, "total_br": 14}, "Feb": {"act26": 4838876, "act25": 5374716, "growth": -10.0, "lfl_br": 14, "total_br": 14}, "Mar": {"act26": 6626309, "act25": 6247120, "growth": 6.1, "lfl_br": 14, "total_br": 14}, "Apr": {"act26": 6254225, "act25": 5845596, "growth": 7.0, "lfl_br": 14, "total_br": 14}, "May": {"act26": 5787050, "act25": 4539536, "growth": 27.5, "lfl_br": 14, "total_br": 14}}}, "สุกฤตา  วิบูลย์": {"monthly": {"Jan": {"act26": 6512651, "act25": 6963460, "growth": -6.5, "lfl_br": 12, "total_br": 12}, "Feb": {"act26": 6278689, "act25": 6738732, "growth": -6.8, "lfl_br": 12, "total_br": 12}, "Mar": {"act26": 6816695, "act25": 6632995, "growth": 2.8, "lfl_br": 12, "total_br": 12}, "Apr": {"act26": 5962204, "act25": 6592780, "growth": -9.6, "lfl_br": 12, "total_br": 12}, "May": {"act26": 6144983, "act25": 7133029, "growth": -13.9, "lfl_br": 12, "total_br": 12}}}, "สุทธิพงษ์  บัวใหญ่": {"monthly": {"Jan": {"act26": 5166681, "act25": 4828105, "growth": 7.0, "lfl_br": 16, "total_br": 16}, "Feb": {"act26": 5125670, "act25": 5447356, "growth": -5.9, "lfl_br": 16, "total_br": 16}, "Mar": {"act26": 6300668, "act25": 6224536, "growth": 1.2, "lfl_br": 16, "total_br": 16}, "Apr": {"act26": 5404461, "act25": 5260921, "growth": 2.7, "lfl_br": 16, "total_br": 16}, "May": {"act26": 5024855, "act25": 5072953, "growth": -0.9, "lfl_br": 16, "total_br": 16}}}, "อนุชาติ  วัชราเกียรติ": {"monthly": {"Jan": {"act26": 7844172, "act25": 9164355, "growth": -14.4, "lfl_br": 18, "total_br": 18}, "Feb": {"act26": 7482824, "act25": 8913609, "growth": -16.1, "lfl_br": 18, "total_br": 19}, "Mar": {"act26": 9651190, "act25": 8806497, "growth": 9.6, "lfl_br": 18, "total_br": 19}, "Apr": {"act26": 9187613, "act25": 7984221, "growth": 15.1, "lfl_br": 18, "total_br": 19}, "May": {"act26": 9012386, "act25": 8363333, "growth": 7.8, "lfl_br": 18, "total_br": 19}}}, "อภิมน  ดินดำ": {"monthly": {"Jan": {"act26": 7061211, "act25": 7803444, "growth": -9.5, "lfl_br": 17, "total_br": 17}, "Feb": {"act26": 7136806, "act25": 7853448, "growth": -9.1, "lfl_br": 17, "total_br": 17}, "Mar": {"act26": 9100366, "act25": 8360282, "growth": 8.9, "lfl_br": 17, "total_br": 17}, "Apr": {"act26": 8039792, "act25": 7085595, "growth": 13.5, "lfl_br": 17, "total_br": 17}, "May": {"act26": 8718821, "act25": 7330160, "growth": 18.9, "lfl_br": 17, "total_br": 17}}}, "อรพิน  อ่อนละมูล": {"monthly": {"Jan": {"act26": 8220141, "act25": 7939523, "growth": 3.5, "lfl_br": 22, "total_br": 22}, "Feb": {"act26": 7355192, "act25": 7818675, "growth": -5.9, "lfl_br": 22, "total_br": 23}, "Mar": {"act26": 8797802, "act25": 7894656, "growth": 11.4, "lfl_br": 22, "total_br": 23}, "Apr": {"act26": 8376138, "act25": 7413263, "growth": 13.0, "lfl_br": 22, "total_br": 23}, "May": {"act26": 8059717, "act25": 6992288, "growth": 15.3, "lfl_br": 22, "total_br": 23}}}, "อรวรรณ  สวัสดี": {"monthly": {"Jan": {"act26": 6642753, "act25": 7158912, "growth": -7.2, "lfl_br": 14, "total_br": 14}, "Feb": {"act26": 6449015, "act25": 7139362, "growth": -9.7, "lfl_br": 14, "total_br": 14}, "Mar": {"act26": 7937208, "act25": 7855154, "growth": 1.0, "lfl_br": 14, "total_br": 14}, "Apr": {"act26": 6657026, "act25": 6296115, "growth": 5.7, "lfl_br": 14, "total_br": 14}, "May": {"act26": 7235152, "act25": 6695963, "growth": 8.1, "lfl_br": 14, "total_br": 14}}}, "เสกสัน  พันธุ": {"monthly": {"Jan": {"act26": 9735714, "act25": 9247701, "growth": 5.3, "lfl_br": 21, "total_br": 21}, "Feb": {"act26": 8466278, "act25": 9358551, "growth": -9.5, "lfl_br": 19, "total_br": 19}, "Mar": {"act26": 10787765, "act25": 9891659, "growth": 9.1, "lfl_br": 19, "total_br": 19}, "Apr": {"act26": 9556650, "act25": 9213535, "growth": 3.7, "lfl_br": 19, "total_br": 19}, "May": {"act26": 9291228, "act25": 8382562, "growth": 10.8, "lfl_br": 19, "total_br": 19}}}};
+      
+      
+      
+      const SUP_DATA_MONTHLY = [{"sup": "กฤษดา  รุ่งกิจคณธร", "region": "ภาคตะวันตก", "branches": 10, "provs": 4, "monthly": {"Jan": {"act": 3717246, "tgt": 4380000, "ach": 84.9, "act25": 3801576, "yoy": -2.2, "lfl_br": 10, "total_br": 10, "lfl_g": -2.2}, "Feb": {"act": 3488020, "tgt": 4280000, "ach": 81.5, "act25": 3608324, "yoy": -3.3, "lfl_br": 10, "total_br": 10, "lfl_g": -3.3}, "Mar": {"act": 4571876, "tgt": 4498000, "ach": 101.6, "act25": 4206069, "yoy": 8.7, "lfl_br": 10, "total_br": 10, "lfl_g": 8.7}, "Apr": {"act": 4318775, "tgt": 4293000, "ach": 100.6, "act25": 3782089, "yoy": 14.2, "lfl_br": 10, "total_br": 10, "lfl_g": 14.2}, "May": {"act": 4479819, "tgt": 4103000, "ach": 109.2, "act25": 3386788, "yoy": 32.3, "lfl_br": 10, "total_br": 10, "lfl_g": 32.3}}, "ytd": {"act": 20575736, "tgt": 21554000, "ach": 95.5, "yoy": 9.5}}, {"sup": "กัฌปนาทมณี  อนุมาตย์", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 16, "provs": 3, "monthly": {"Jan": {"act": 7558674, "tgt": 9874000, "ach": 76.6, "act25": 8638045, "yoy": -12.5, "lfl_br": 16, "total_br": 16, "lfl_g": -12.5}, "Feb": {"act": 7521192, "tgt": 9824000, "ach": 76.6, "act25": 8768589, "yoy": -14.2, "lfl_br": 16, "total_br": 16, "lfl_g": -14.2}, "Mar": {"act": 8751202, "tgt": 10084500, "ach": 86.8, "act25": 8974871, "yoy": -2.5, "lfl_br": 16, "total_br": 16, "lfl_g": -2.5}, "Apr": {"act": 8515187, "tgt": 9760000, "ach": 87.2, "act25": 8027589, "yoy": 6.1, "lfl_br": 16, "total_br": 16, "lfl_g": 6.1}, "May": {"act": 8734876, "tgt": 10150000, "ach": 86.1, "act25": 8566341, "yoy": 2.0, "lfl_br": 16, "total_br": 16, "lfl_g": 2.0}}, "ytd": {"act": 41081131, "tgt": 49692500, "ach": 82.7, "yoy": -4.4}}, {"sup": "กิติยาภรณ์  นีระมนต์", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 14, "provs": 6, "monthly": {"Jan": {"act": 4198286, "tgt": 5070000, "ach": 82.8, "act25": 4495228, "yoy": -6.6, "lfl_br": 14, "total_br": 14, "lfl_g": -6.6}, "Feb": {"act": 4347511, "tgt": 5117000, "ach": 85.0, "act25": 4969977, "yoy": -12.5, "lfl_br": 14, "total_br": 14, "lfl_g": -12.5}, "Mar": {"act": 5478477, "tgt": 5548500, "ach": 98.7, "act25": 6009449, "yoy": -8.8, "lfl_br": 14, "total_br": 14, "lfl_g": -8.8}, "Apr": {"act": 4464651, "tgt": 5405000, "ach": 82.6, "act25": 5008507, "yoy": -10.9, "lfl_br": 14, "total_br": 14, "lfl_g": -10.9}, "May": {"act": 4441785, "tgt": 5405000, "ach": 82.2, "act25": 4281676, "yoy": 3.7, "lfl_br": 14, "total_br": 14, "lfl_g": 3.7}}, "ytd": {"act": 22930710, "tgt": 26545500, "ach": 86.4, "yoy": -7.4}}, {"sup": "ก้องเกียรติ  ช้อยชาญชัยกุล", "region": "ภาคใต้", "branches": 8, "provs": 3, "monthly": {"Jan": {"act": 3899605, "tgt": 3880500, "ach": 100.5, "act25": 3417640, "yoy": 14.1, "lfl_br": 8, "total_br": 8, "lfl_g": 14.1}, "Feb": {"act": 3925141, "tgt": 3900500, "ach": 100.6, "act25": 3692067, "yoy": 6.3, "lfl_br": 8, "total_br": 8, "lfl_g": 6.3}, "Mar": {"act": 4076151, "tgt": 3984500, "ach": 102.3, "act25": 4544775, "yoy": -10.3, "lfl_br": 8, "total_br": 8, "lfl_g": -10.3}, "Apr": {"act": 4198437, "tgt": 4250000, "ach": 98.8, "act25": 3526352, "yoy": 19.1, "lfl_br": 8, "total_br": 8, "lfl_g": 19.1}, "May": {"act": 3617209, "tgt": 4250000, "ach": 85.1, "act25": 3350099, "yoy": 8.0, "lfl_br": 8, "total_br": 8, "lfl_g": 8.0}}, "ytd": {"act": 19716543, "tgt": 20265500, "ach": 97.3, "yoy": 6.4}}, {"sup": "จิตรลดา ศรีสวัสดิ์", "region": "ภาคเหนือ", "branches": 14, "provs": 4, "monthly": {"Jan": {"act": 7313683, "tgt": 7860000, "ach": 93.0, "act25": 7340806, "yoy": -0.4, "lfl_br": 14, "total_br": 14, "lfl_g": -0.4}, "Feb": {"act": 7009227, "tgt": 7850000, "ach": 89.3, "act25": 7840095, "yoy": -10.6, "lfl_br": 14, "total_br": 14, "lfl_g": -10.6}, "Mar": {"act": 9421584, "tgt": 8460000, "ach": 111.4, "act25": 8896624, "yoy": 5.9, "lfl_br": 14, "total_br": 14, "lfl_g": 5.9}, "Apr": {"act": 8616140, "tgt": 8550000, "ach": 100.8, "act25": 7343255, "yoy": 17.3, "lfl_br": 14, "total_br": 14, "lfl_g": 17.3}, "May": {"act": 7619415, "tgt": 8570000, "ach": 88.9, "act25": 7354452, "yoy": 3.6, "lfl_br": 14, "total_br": 14, "lfl_g": 3.6}}, "ytd": {"act": 39980049, "tgt": 41290000, "ach": 96.8, "yoy": 3.1}}, {"sup": "ชุติมันต์   ชัยชนะ", "region": "ภาคใต้", "branches": 12, "provs": 2, "monthly": {"Jan": {"act": 5990939, "tgt": 6920000, "ach": 86.6, "act25": 5233106, "yoy": 14.5, "lfl_br": 12, "total_br": 12, "lfl_g": 14.5}, "Feb": {"act": 5541066, "tgt": 6960000, "ach": 79.6, "act25": 5323027, "yoy": 4.1, "lfl_br": 12, "total_br": 12, "lfl_g": 4.1}, "Mar": {"act": 6058357, "tgt": 7030000, "ach": 86.2, "act25": 6544384, "yoy": -7.4, "lfl_br": 12, "total_br": 12, "lfl_g": -7.4}, "Apr": {"act": 6507364, "tgt": 7100000, "ach": 91.7, "act25": 5685056, "yoy": 14.5, "lfl_br": 12, "total_br": 12, "lfl_g": 14.5}, "May": {"act": 5682520, "tgt": 7160000, "ach": 79.4, "act25": 5588833, "yoy": 1.7, "lfl_br": 12, "total_br": 12, "lfl_g": 1.7}}, "ytd": {"act": 29780246, "tgt": 35170000, "ach": 84.7, "yoy": 5.0}}, {"sup": "ชไมพร  วรจักร์", "region": "ภาคกลาง", "branches": 23, "provs": 2, "monthly": {"Jan": {"act": 7871168, "tgt": 8745000, "ach": 90.0, "act25": 7227977, "yoy": 8.2, "lfl_br": 21, "total_br": 22, "lfl_g": 8.2}, "Feb": {"act": 7168012, "tgt": 8835000, "ach": 81.1, "act25": 6996309, "yoy": 1.4, "lfl_br": 21, "total_br": 23, "lfl_g": 1.4}, "Mar": {"act": 8643081, "tgt": 8925000, "ach": 96.8, "act25": 7909809, "yoy": 8.6, "lfl_br": 21, "total_br": 23, "lfl_g": 8.6}, "Apr": {"act": 7893054, "tgt": 8440000, "ach": 93.5, "act25": 6662152, "yoy": 17.4, "lfl_br": 21, "total_br": 23, "lfl_g": 17.4}, "May": {"act": 7659037, "tgt": 8490000, "ach": 90.2, "act25": 6416452, "yoy": 18.1, "lfl_br": 21, "total_br": 23, "lfl_g": 18.1}}, "ytd": {"act": 39234352, "tgt": 43435000, "ach": 90.3, "yoy": 11.4}}, {"sup": "ณัฏฐ์วัฒน์  คำเกิด", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 17, "provs": 4, "monthly": {"Jan": {"act": 11954670, "tgt": 13450000, "ach": 88.9, "act25": 12431611, "yoy": -3.8, "lfl_br": 18, "total_br": 18, "lfl_g": -3.8}, "Feb": {"act": 11354958, "tgt": 13147500, "ach": 86.4, "act25": 12568079, "yoy": -9.7, "lfl_br": 18, "total_br": 18, "lfl_g": -9.7}, "Mar": {"act": 14647612, "tgt": 14579000, "ach": 100.5, "act25": 13915726, "yoy": 5.3, "lfl_br": 17, "total_br": 17, "lfl_g": 5.3}, "Apr": {"act": 13529142, "tgt": 13284000, "ach": 101.8, "act25": 12245210, "yoy": 10.5, "lfl_br": 17, "total_br": 17, "lfl_g": 10.5}, "May": {"act": 11136755, "tgt": 13634000, "ach": 81.7, "act25": 10315100, "yoy": 8.0, "lfl_br": 17, "total_br": 17, "lfl_g": 8.0}}, "ytd": {"act": 62623137, "tgt": 68094500, "ach": 92.0, "yoy": 1.9}}, {"sup": "ณัฐพล   สิงห์โต", "region": "ภาคกลาง", "branches": 17, "provs": 9, "monthly": {"Jan": {"act": 7244386, "tgt": 8650000, "ach": 83.8, "act25": 7687791, "yoy": -5.8, "lfl_br": 17, "total_br": 17, "lfl_g": -5.8}, "Feb": {"act": 6769071, "tgt": 8650000, "ach": 78.3, "act25": 7721670, "yoy": -12.3, "lfl_br": 17, "total_br": 17, "lfl_g": -12.3}, "Mar": {"act": 8251471, "tgt": 9110000, "ach": 90.6, "act25": 9545851, "yoy": -13.6, "lfl_br": 17, "total_br": 17, "lfl_g": -13.6}, "Apr": {"act": 7365415, "tgt": 9150000, "ach": 80.5, "act25": 7561963, "yoy": -2.6, "lfl_br": 17, "total_br": 17, "lfl_g": -2.6}, "May": {"act": 7602777, "tgt": 9270000, "ach": 82.0, "act25": 7743886, "yoy": -1.8, "lfl_br": 17, "total_br": 17, "lfl_g": -1.8}}, "ytd": {"act": 37233120, "tgt": 44830000, "ach": 83.1, "yoy": -7.5}}, {"sup": "ณัฐภาสรณ์  ศรีสวัสดิ์", "region": "ภาคกลาง", "branches": 17, "provs": 6, "monthly": {"Jan": {"act": 7045357, "tgt": 8620000, "ach": 81.7, "act25": 6594629, "yoy": 6.8, "lfl_br": 17, "total_br": 17, "lfl_g": 6.8}, "Feb": {"act": 6724603, "tgt": 8570000, "ach": 78.5, "act25": 7124308, "yoy": -5.6, "lfl_br": 17, "total_br": 17, "lfl_g": -5.6}, "Mar": {"act": 8987403, "tgt": 9207000, "ach": 97.6, "act25": 8403247, "yoy": 7.0, "lfl_br": 17, "total_br": 17, "lfl_g": 7.0}, "Apr": {"act": 7738170, "tgt": 8340000, "ach": 92.8, "act25": 6943563, "yoy": 11.4, "lfl_br": 17, "total_br": 17, "lfl_g": 11.4}, "May": {"act": 7972594, "tgt": 8500000, "ach": 93.8, "act25": 6656926, "yoy": 19.8, "lfl_br": 17, "total_br": 17, "lfl_g": 19.8}}, "ytd": {"act": 38468127, "tgt": 43237000, "ach": 89.0, "yoy": 7.7}}, {"sup": "ณัฐวุฒิ  ตะมะวิโมก", "region": "ภาคกลาง", "branches": 18, "provs": 4, "monthly": {"Jan": {"act": 9761091, "tgt": 11450000, "ach": 85.2, "act25": 10510613, "yoy": -7.1, "lfl_br": 17, "total_br": 17, "lfl_g": -7.1}, "Feb": {"act": 9586761, "tgt": 11450000, "ach": 83.7, "act25": 10283493, "yoy": -6.8, "lfl_br": 17, "total_br": 17, "lfl_g": -6.8}, "Mar": {"act": 11825725, "tgt": 11850000, "ach": 99.8, "act25": 11385545, "yoy": 1.4, "lfl_br": 17, "total_br": 18, "lfl_g": 1.4}, "Apr": {"act": 9561912, "tgt": 11220000, "ach": 85.2, "act25": 9221375, "yoy": -0.2, "lfl_br": 17, "total_br": 18, "lfl_g": -0.2}, "May": {"act": 9827612, "tgt": 10920000, "ach": 90.0, "act25": 8763223, "yoy": 8.9, "lfl_br": 17, "total_br": 18, "lfl_g": 8.9}}, "ytd": {"act": 50563101, "tgt": 56890000, "ach": 88.9, "yoy": 0.8}}, {"sup": "ทวีโชค  จันทร์นอก", "region": "ภาคกลาง", "branches": 17, "provs": 4, "monthly": {"Jan": {"act": 5199548, "tgt": 6485000, "ach": 80.2, "act25": 5545210, "yoy": -6.7, "lfl_br": 16, "total_br": 17, "lfl_g": -6.7}, "Feb": {"act": 4724113, "tgt": 6505000, "ach": 72.6, "act25": 6045415, "yoy": -22.3, "lfl_br": 16, "total_br": 17, "lfl_g": -22.3}, "Mar": {"act": 6489934, "tgt": 6718000, "ach": 96.6, "act25": 6667621, "yoy": -3.1, "lfl_br": 16, "total_br": 17, "lfl_g": -3.1}, "Apr": {"act": 6243783, "tgt": 6311000, "ach": 98.9, "act25": 5473298, "yoy": 13.4, "lfl_br": 16, "total_br": 17, "lfl_g": 13.4}, "May": {"act": 6221896, "tgt": 6331000, "ach": 98.3, "act25": 5025632, "yoy": 22.8, "lfl_br": 16, "total_br": 17, "lfl_g": 22.8}}, "ytd": {"act": 28879274, "tgt": 32350000, "ach": 89.3, "yoy": 0.4}}, {"sup": "ทานตะวัน  ภูวรณ์", "region": "ภาคใต้", "branches": 12, "provs": 3, "monthly": {"Jan": {"act": 7492902, "tgt": 7350000, "ach": 101.9, "act25": 7481458, "yoy": 0.2, "lfl_br": 11, "total_br": 11, "lfl_g": 0.2}, "Feb": {"act": 7095947, "tgt": 7390000, "ach": 96.0, "act25": 6976617, "yoy": 1.7, "lfl_br": 11, "total_br": 11, "lfl_g": 1.7}, "Mar": {"act": 8498915, "tgt": 7420000, "ach": 114.5, "act25": 8387050, "yoy": 1.3, "lfl_br": 11, "total_br": 11, "lfl_g": 1.3}, "Apr": {"act": 8134444, "tgt": 8130000, "ach": 100.1, "act25": 7535087, "yoy": 0.8, "lfl_br": 11, "total_br": 12, "lfl_g": 0.8}, "May": {"act": 7770001, "tgt": 8320000, "ach": 93.4, "act25": 7856396, "yoy": -10.6, "lfl_br": 11, "total_br": 12, "lfl_g": -10.6}}, "ytd": {"act": 38992209, "tgt": 38610000, "ach": 101.0, "yoy": 2.0}}, {"sup": "นภัสนันท์  นุกิจ", "region": "ภาคกลาง", "branches": 19, "provs": 4, "monthly": {"Jan": {"act": 5882257, "tgt": 6660000, "ach": 88.3, "act25": 6011474, "yoy": -2.7, "lfl_br": 16, "total_br": 17, "lfl_g": -2.7}, "Feb": {"act": 5120390, "tgt": 6840000, "ach": 74.9, "act25": 5747442, "yoy": -11.8, "lfl_br": 16, "total_br": 18, "lfl_g": -11.8}, "Mar": {"act": 6114170, "tgt": 7090000, "ach": 86.2, "act25": 6075068, "yoy": 0.0, "lfl_br": 16, "total_br": 19, "lfl_g": 0.0}, "Apr": {"act": 5385614, "tgt": 6970000, "ach": 77.3, "act25": 5395984, "yoy": -2.8, "lfl_br": 16, "total_br": 19, "lfl_g": -2.8}, "May": {"act": 5704642, "tgt": 6990000, "ach": 81.6, "act25": 5371869, "yoy": 3.8, "lfl_br": 16, "total_br": 19, "lfl_g": 3.8}}, "ytd": {"act": 28207073, "tgt": 34550000, "ach": 81.6, "yoy": -1.4}}, {"sup": "นฤมล  แหละหมัด", "region": "ภาคใต้", "branches": 13, "provs": 4, "monthly": {"Jan": {"act": 9504175, "tgt": 5640000, "ach": 168.5, "act25": 5117656, "yoy": 85.7, "lfl_br": 13, "total_br": 13, "lfl_g": 85.7}, "Feb": {"act": 7378452, "tgt": 5695500, "ach": 129.5, "act25": 5384600, "yoy": 37.0, "lfl_br": 13, "total_br": 13, "lfl_g": 37.0}, "Mar": {"act": 8004894, "tgt": 6000000, "ach": 133.4, "act25": 5936000, "yoy": 34.9, "lfl_br": 13, "total_br": 13, "lfl_g": 34.9}, "Apr": {"act": 7804971, "tgt": 6580000, "ach": 118.6, "act25": 5173864, "yoy": 50.9, "lfl_br": 13, "total_br": 13, "lfl_g": 50.9}, "May": {"act": 7397237, "tgt": 6530000, "ach": 113.3, "act25": 4983970, "yoy": 48.4, "lfl_br": 13, "total_br": 13, "lfl_g": 48.4}}, "ytd": {"act": 40089729, "tgt": 30445500, "ach": 131.7, "yoy": 50.7}}, {"sup": "ปรัศนีย์  พิสุทธิเสรีวงศ์", "region": "ภาคตะวันออก", "branches": 15, "provs": 3, "monthly": {"Jan": {"act": 10376455, "tgt": 9702000, "ach": 107.0, "act25": 9143610, "yoy": 13.5, "lfl_br": 15, "total_br": 15, "lfl_g": 13.5}, "Feb": {"act": 9743784, "tgt": 9837000, "ach": 99.1, "act25": 8403644, "yoy": 15.9, "lfl_br": 15, "total_br": 15, "lfl_g": 15.9}, "Mar": {"act": 11011378, "tgt": 10097000, "ach": 109.1, "act25": 9928260, "yoy": 10.9, "lfl_br": 15, "total_br": 15, "lfl_g": 10.9}, "Apr": {"act": 9387694, "tgt": 10045000, "ach": 93.5, "act25": 8306822, "yoy": 13.0, "lfl_br": 15, "total_br": 15, "lfl_g": 13.0}, "May": {"act": 9183689, "tgt": 10510000, "ach": 87.4, "act25": 7800261, "yoy": 17.7, "lfl_br": 15, "total_br": 15, "lfl_g": 17.7}}, "ytd": {"act": 49703000, "tgt": 50191000, "ach": 99.0, "yoy": 14.0}}, {"sup": "มินท์มันตา  จิโรจชัยเกียรติ", "region": "ภาคตะวันออก", "branches": 19, "provs": 2, "monthly": {"Jan": {"act": 9166453, "tgt": 8663000, "ach": 105.8, "act25": 7676807, "yoy": 19.4, "lfl_br": 19, "total_br": 19, "lfl_g": 19.4}, "Feb": {"act": 8158935, "tgt": 8603000, "ach": 94.8, "act25": 7547302, "yoy": 8.1, "lfl_br": 19, "total_br": 19, "lfl_g": 8.1}, "Mar": {"act": 9804021, "tgt": 8840000, "ach": 110.9, "act25": 9185719, "yoy": 6.7, "lfl_br": 19, "total_br": 19, "lfl_g": 6.7}, "Apr": {"act": 8689491, "tgt": 9450000, "ach": 92.0, "act25": 8031984, "yoy": 8.2, "lfl_br": 19, "total_br": 19, "lfl_g": 8.2}, "May": {"act": 9006328, "tgt": 9620000, "ach": 93.6, "act25": 7994693, "yoy": 12.7, "lfl_br": 19, "total_br": 19, "lfl_g": 12.7}}, "ytd": {"act": 44825228, "tgt": 45176000, "ach": 99.2, "yoy": 10.9}}, {"sup": "วชิระ  บุตรนวน", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 15, "provs": 3, "monthly": {"Jan": {"act": 6137646, "tgt": 5895000, "ach": 104.1, "act25": 5294092, "yoy": 15.9, "lfl_br": 15, "total_br": 15, "lfl_g": 15.9}, "Feb": {"act": 6779670, "tgt": 5820000, "ach": 116.5, "act25": 5560209, "yoy": 21.9, "lfl_br": 15, "total_br": 15, "lfl_g": 21.9}, "Mar": {"act": 7415235, "tgt": 6165000, "ach": 120.3, "act25": 6205685, "yoy": 19.5, "lfl_br": 15, "total_br": 15, "lfl_g": 19.5}, "Apr": {"act": 7026880, "tgt": 6820000, "ach": 103.0, "act25": 5702726, "yoy": 23.2, "lfl_br": 15, "total_br": 15, "lfl_g": 23.2}, "May": {"act": 6685615, "tgt": 6690000, "ach": 99.9, "act25": 4921086, "yoy": 35.9, "lfl_br": 15, "total_br": 15, "lfl_g": 35.9}}, "ytd": {"act": 34045046, "tgt": 31390000, "ach": 108.5, "yoy": 23.0}}, {"sup": "ศุทธสิทธิ์ เหมฤดี", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 14, "provs": 3, "monthly": {"Jan": {"act": 4570775, "tgt": 5850000, "ach": 78.1, "act25": 5360891, "yoy": -14.7, "lfl_br": 14, "total_br": 14, "lfl_g": -14.7}, "Feb": {"act": 4838876, "tgt": 5802000, "ach": 83.4, "act25": 5374716, "yoy": -10.0, "lfl_br": 14, "total_br": 14, "lfl_g": -10.0}, "Mar": {"act": 6626309, "tgt": 6114000, "ach": 108.4, "act25": 6247120, "yoy": 6.1, "lfl_br": 14, "total_br": 14, "lfl_g": 6.1}, "Apr": {"act": 6254225, "tgt": 6325000, "ach": 98.9, "act25": 5845596, "yoy": 7.0, "lfl_br": 14, "total_br": 14, "lfl_g": 7.0}, "May": {"act": 5787050, "tgt": 6315000, "ach": 91.6, "act25": 4539536, "yoy": 27.5, "lfl_br": 14, "total_br": 14, "lfl_g": 27.5}}, "ytd": {"act": 28077235, "tgt": 30406000, "ach": 92.3, "yoy": 2.6}}, {"sup": "สุกฤตา  วิบูลย์", "region": "ภาคกลาง", "branches": 12, "provs": 2, "monthly": {"Jan": {"act": 6512651, "tgt": 7530000, "ach": 86.5, "act25": 6963460, "yoy": -6.5, "lfl_br": 12, "total_br": 12, "lfl_g": -6.5}, "Feb": {"act": 6278689, "tgt": 7620000, "ach": 82.4, "act25": 6738732, "yoy": -6.8, "lfl_br": 12, "total_br": 12, "lfl_g": -6.8}, "Mar": {"act": 6816695, "tgt": 7670000, "ach": 88.9, "act25": 6632995, "yoy": 2.8, "lfl_br": 12, "total_br": 12, "lfl_g": 2.8}, "Apr": {"act": 5962204, "tgt": 7490000, "ach": 79.6, "act25": 6592780, "yoy": -9.6, "lfl_br": 12, "total_br": 12, "lfl_g": -9.6}, "May": {"act": 6144983, "tgt": 7590000, "ach": 81.0, "act25": 7133029, "yoy": -13.9, "lfl_br": 12, "total_br": 12, "lfl_g": -13.9}}, "ytd": {"act": 31715222, "tgt": 37900000, "ach": 83.7, "yoy": -6.9}}, {"sup": "สุทธิพงษ์  บัวใหญ่", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 16, "provs": 4, "monthly": {"Jan": {"act": 5166681, "tgt": 6200000, "ach": 83.3, "act25": 4828105, "yoy": 7.0, "lfl_br": 16, "total_br": 16, "lfl_g": 7.0}, "Feb": {"act": 5125670, "tgt": 6150000, "ach": 83.3, "act25": 5447356, "yoy": -5.9, "lfl_br": 16, "total_br": 16, "lfl_g": -5.9}, "Mar": {"act": 6300668, "tgt": 6520000, "ach": 96.6, "act25": 6224536, "yoy": 1.2, "lfl_br": 16, "total_br": 16, "lfl_g": 1.2}, "Apr": {"act": 5404461, "tgt": 6550000, "ach": 82.5, "act25": 5260921, "yoy": 2.7, "lfl_br": 16, "total_br": 16, "lfl_g": 2.7}, "May": {"act": 5024855, "tgt": 6360000, "ach": 79.0, "act25": 5072953, "yoy": -0.9, "lfl_br": 16, "total_br": 16, "lfl_g": -0.9}}, "ytd": {"act": 27022335, "tgt": 31780000, "ach": 85.0, "yoy": 0.7}}, {"sup": "อนุชาติ  วัชราเกียรติ", "region": "ภาคกลาง", "branches": 19, "provs": 2, "monthly": {"Jan": {"act": 7844172, "tgt": 9915000, "ach": 79.1, "act25": 9164355, "yoy": -14.4, "lfl_br": 18, "total_br": 18, "lfl_g": -14.4}, "Feb": {"act": 7485929, "tgt": 9785000, "ach": 76.5, "act25": 8913609, "yoy": -16.1, "lfl_br": 18, "total_br": 19, "lfl_g": -16.1}, "Mar": {"act": 9651190, "tgt": 9925500, "ach": 97.2, "act25": 8806497, "yoy": 9.6, "lfl_br": 18, "total_br": 19, "lfl_g": 9.6}, "Apr": {"act": 9236208, "tgt": 10220000, "ach": 90.4, "act25": 7984221, "yoy": 15.1, "lfl_br": 18, "total_br": 19, "lfl_g": 15.1}, "May": {"act": 9057762, "tgt": 10310000, "ach": 87.9, "act25": 8363333, "yoy": 7.8, "lfl_br": 18, "total_br": 19, "lfl_g": 7.8}}, "ytd": {"act": 43275261, "tgt": 50155500, "ach": 86.3, "yoy": 0.1}}, {"sup": "อภิมน  ดินดำ", "region": "ภาคตะวันออกเฉียงเหนือ", "branches": 17, "provs": 3, "monthly": {"Jan": {"act": 7061211, "tgt": 9370000, "ach": 75.4, "act25": 7803444, "yoy": -9.5, "lfl_br": 17, "total_br": 17, "lfl_g": -9.5}, "Feb": {"act": 7136806, "tgt": 9200000, "ach": 77.6, "act25": 7853448, "yoy": -9.1, "lfl_br": 17, "total_br": 17, "lfl_g": -9.1}, "Mar": {"act": 9100366, "tgt": 9968000, "ach": 91.3, "act25": 8360282, "yoy": 8.9, "lfl_br": 17, "total_br": 17, "lfl_g": 8.9}, "Apr": {"act": 8039792, "tgt": 9560000, "ach": 84.1, "act25": 7085595, "yoy": 13.5, "lfl_br": 17, "total_br": 17, "lfl_g": 13.5}, "May": {"act": 8718821, "tgt": 9250000, "ach": 94.3, "act25": 7330160, "yoy": 18.9, "lfl_br": 17, "total_br": 17, "lfl_g": 18.9}}, "ytd": {"act": 40056996, "tgt": 47348000, "ach": 84.6, "yoy": 4.2}}, {"sup": "อรพิน  อ่อนละมูล", "region": "ภาคกลาง", "branches": 23, "provs": 2, "monthly": {"Jan": {"act": 8220141, "tgt": 9270000, "ach": 88.7, "act25": 7939523, "yoy": 3.5, "lfl_br": 22, "total_br": 22, "lfl_g": 3.5}, "Feb": {"act": 7755873, "tgt": 9690000, "ach": 80.0, "act25": 7818675, "yoy": -5.9, "lfl_br": 22, "total_br": 23, "lfl_g": -5.9}, "Mar": {"act": 9404991, "tgt": 9870000, "ach": 95.3, "act25": 7894656, "yoy": 11.4, "lfl_br": 22, "total_br": 23, "lfl_g": 11.4}, "Apr": {"act": 8878311, "tgt": 9090000, "ach": 97.7, "act25": 7413263, "yoy": 13.0, "lfl_br": 22, "total_br": 23, "lfl_g": 13.0}, "May": {"act": 8559900, "tgt": 9255000, "ach": 92.5, "act25": 6992288, "yoy": 15.3, "lfl_br": 22, "total_br": 23, "lfl_g": 15.3}}, "ytd": {"act": 42819216, "tgt": 47175000, "ach": 90.8, "yoy": 12.5}}, {"sup": "อรวรรณ  สวัสดี", "region": "ภาคเหนือ", "branches": 14, "provs": 3, "monthly": {"Jan": {"act": 6642753, "tgt": 7370000, "ach": 90.1, "act25": 7158912, "yoy": -7.2, "lfl_br": 14, "total_br": 14, "lfl_g": -7.2}, "Feb": {"act": 6449015, "tgt": 7115000, "ach": 90.6, "act25": 7139362, "yoy": -9.7, "lfl_br": 14, "total_br": 14, "lfl_g": -9.7}, "Mar": {"act": 7937208, "tgt": 7550000, "ach": 105.1, "act25": 7855154, "yoy": 1.0, "lfl_br": 14, "total_br": 14, "lfl_g": 1.0}, "Apr": {"act": 6657026, "tgt": 7470000, "ach": 89.1, "act25": 6296115, "yoy": 5.7, "lfl_br": 14, "total_br": 14, "lfl_g": 5.7}, "May": {"act": 7235152, "tgt": 7650000, "ach": 94.6, "act25": 6695963, "yoy": 8.1, "lfl_br": 14, "total_br": 14, "lfl_g": 8.1}}, "ytd": {"act": 34921154, "tgt": 37155000, "ach": 94.0, "yoy": -0.6}}, {"sup": "เสกสัน  พันธุ", "region": "ภาคตะวันออก", "branches": 19, "provs": 5, "monthly": {"Jan": {"act": 9735714, "tgt": 10423000, "ach": 93.4, "act25": 9247701, "yoy": 5.3, "lfl_br": 21, "total_br": 21, "lfl_g": 5.3}, "Feb": {"act": 8466278, "tgt": 10123000, "ach": 83.6, "act25": 9358551, "yoy": -9.5, "lfl_br": 19, "total_br": 19, "lfl_g": -9.5}, "Mar": {"act": 10787765, "tgt": 10455000, "ach": 103.2, "act25": 9891659, "yoy": 9.1, "lfl_br": 19, "total_br": 19, "lfl_g": 9.1}, "Apr": {"act": 9556650, "tgt": 10580000, "ach": 90.3, "act25": 9213535, "yoy": 3.7, "lfl_br": 19, "total_br": 19, "lfl_g": 3.7}, "May": {"act": 9291228, "tgt": 10630000, "ach": 87.4, "act25": 8382562, "yoy": 10.8, "lfl_br": 19, "total_br": 19, "lfl_g": 10.8}}, "ytd": {"act": 47837635, "tgt": 52211000, "ach": 91.6, "yoy": 3.8}}];
+      
+      
+      const SUP_DATA = [{"sup":"ณัฏฐ์วัฒน์  คำเกิด","region":"ภาคตะวันออกเฉียงเหนือ","branches":17,"provs":4,"may_s":11136754.55,"may_t":13634000,"ach_may":81.7,"gap_may":-2497245,"yoy_may":8.0,"ytd_s":62573980.65,"ytd_t":67594500,"ach_ytd":92.6,"yoy_ytd":2.5,"trend":{"Jan":90.5,"Feb":87.8,"Mar":100.5,"Apr":101.8,"May":81.7}},{"sup":"ณัฐวุฒิ  ตะมะวิโมก","region":"ภาคกลาง","branches":18,"provs":4,"may_s":9827612.08,"may_t":10920000,"ach_may":90.0,"gap_may":-1092388,"yoy_may":12.1,"ytd_s":50563101.01,"ytd_t":56890000,"ach_ytd":88.9,"yoy_ytd":0.8,"trend":{"Jan":85.2,"Feb":83.7,"Mar":99.8,"Apr":85.2,"May":90.0}},{"sup":"เสกสัน  พันธุ","region":"ภาคตะวันออก","branches":19,"provs":5,"may_s":9291227.65,"may_t":10630000,"ach_may":87.4,"gap_may":-1338772,"yoy_may":42.4,"ytd_s":47697951.74,"ytd_t":51861000,"ach_ytd":92.0,"yoy_ytd":34.4,"trend":{"Jan":95.3,"Feb":83.6,"Mar":103.2,"Apr":90.3,"May":87.4}},{"sup":"ปรัศนีย์  พิสุทธิ","region":"ภาคตะวันออก","branches":15,"provs":3,"may_s":9183688.59,"may_t":10510000,"ach_may":87.4,"gap_may":-1326311,"yoy_may":32.4,"ytd_s":49702999.91,"ytd_t":50191000,"ach_ytd":99.0,"yoy_ytd":28.0,"trend":{"Jan":107.0,"Feb":99.1,"Mar":109.1,"Apr":93.5,"May":87.4}},{"sup":"อนุชาติ  วัชราเกียรติ","region":"ภาคกลาง","branches":19,"provs":2,"may_s":9057761.66,"may_t":10310000,"ach_may":87.9,"gap_may":-1252238,"yoy_may":44.3,"ytd_s":43223187.56,"ytd_t":50095500,"ach_ytd":86.3,"yoy_ytd":35.4,"trend":{"Jan":79.1,"Feb":76.5,"Mar":97.2,"Apr":90.4,"May":87.9}},{"sup":"มินท์มันตา  จิโรจ","region":"ภาคตะวันออก","branches":19,"provs":2,"may_s":9006327.95,"may_t":9620000,"ach_may":93.6,"gap_may":-613672,"yoy_may":45.2,"ytd_s":44825227.31,"ytd_t":45176000,"ach_ytd":99.2,"yoy_ytd":42.8,"trend":{"Jan":105.8,"Feb":94.8,"Mar":110.9,"Apr":92.0,"May":93.6}},{"sup":"กัฌปนาทมณี  อนุมาตย์","region":"ภาคตะวันออกเฉียงเหนือ","branches":16,"provs":3,"may_s":8734876.35,"may_t":10150000,"ach_may":86.1,"gap_may":-1415124,"yoy_may":6.5,"ytd_s":41081131.57,"ytd_t":49692500,"ach_ytd":82.7,"yoy_ytd":-0.2,"trend":{"Jan":76.6,"Feb":76.6,"Mar":86.8,"Apr":87.2,"May":86.1}},{"sup":"อภิมน  ดินดำ","region":"ภาคตะวันออกเฉียงเหนือ","branches":17,"provs":3,"may_s":8718821.12,"may_t":9250000,"ach_may":94.3,"gap_may":-531179,"yoy_may":18.9,"ytd_s":40056996.54,"ytd_t":47348000,"ach_ytd":84.6,"yoy_ytd":4.2,"trend":{"Jan":75.4,"Feb":77.6,"Mar":91.3,"Apr":84.1,"May":94.3}},{"sup":"อรพิน  อ่อนละมูล","region":"ภาคกลาง","branches":23,"provs":2,"may_s":8559900.34,"may_t":9255000,"ach_may":92.5,"gap_may":-695100,"yoy_may":34.0,"ytd_s":42819215.83,"ytd_t":47175000,"ach_ytd":90.8,"yoy_ytd":25.0,"trend":{"Jan":88.7,"Feb":80.0,"Mar":95.3,"Apr":97.7,"May":92.5}},{"sup":"ณัฐภาสรณ์  ศรีสวัสดิ์","region":"ภาคกลาง","branches":17,"provs":6,"may_s":7972593.61,"may_t":8500000,"ach_may":93.8,"gap_may":-527406,"yoy_may":29.6,"ytd_s":38468126.20,"ytd_t":43237000,"ach_ytd":89.0,"yoy_ytd":19.7,"trend":{"Jan":81.7,"Feb":78.5,"Mar":97.6,"Apr":92.8,"May":93.8}},{"sup":"ทานตะวัน  ภูวรณ์","region":"ภาคใต้","branches":12,"provs":3,"may_s":7770001.25,"may_t":8320000,"ach_may":93.4,"gap_may":-549999,"yoy_may":7.5,"ytd_s":38992209.26,"ytd_t":38610000,"ach_ytd":101.0,"yoy_ytd":9.9,"trend":{"Jan":101.9,"Feb":96.0,"Mar":114.5,"Apr":100.1,"May":93.4}},{"sup":"ชไมพร  วรจักร์","region":"ภาคกลาง","branches":23,"provs":2,"may_s":7659037.18,"may_t":8490000,"ach_may":90.2,"gap_may":-830963,"yoy_may":25.0,"ytd_s":39234352.52,"ytd_t":43435000,"ach_ytd":90.3,"yoy_ytd":17.1,"trend":{"Jan":90.0,"Feb":81.1,"Mar":96.8,"Apr":93.5,"May":90.2}},{"sup":"จิตรลดา ศรีสวัสดิ์","region":"ภาคเหนือ","branches":14,"provs":4,"may_s":7619414.86,"may_t":8570000,"ach_may":88.9,"gap_may":-950585,"yoy_may":5.8,"ytd_s":39980048.97,"ytd_t":41290000,"ach_ytd":96.8,"yoy_ytd":5.7,"trend":{"Jan":93.0,"Feb":89.3,"Mar":111.4,"Apr":100.8,"May":88.9}},{"sup":"ณัฐพล  สิงห์โต","region":"ภาคกลาง","branches":17,"provs":9,"may_s":7602777.23,"may_t":9270000,"ach_may":82.0,"gap_may":-1667223,"yoy_may":-1.8,"ytd_s":37233120.24,"ytd_t":44830000,"ach_ytd":83.1,"yoy_ytd":-7.5,"trend":{"Jan":83.8,"Feb":78.3,"Mar":90.6,"Apr":80.5,"May":82.0}},{"sup":"นฤมล  แหละหมัด","region":"ภาคใต้","branches":13,"provs":4,"may_s":7397237.15,"may_t":6530000,"ach_may":113.3,"gap_may":867237,"yoy_may":77.9,"ytd_s":40089729.14,"ytd_t":30445500,"ach_ytd":131.7,"yoy_ytd":81.1,"trend":{"Jan":168.5,"Feb":129.5,"Mar":133.4,"Apr":118.6,"May":113.3}},{"sup":"อรวรรณ  สวัสดี","region":"ภาคเหนือ","branches":14,"provs":3,"may_s":7235151.93,"may_t":7650000,"ach_may":94.6,"gap_may":-414848,"yoy_may":17.6,"ytd_s":34921153.62,"ytd_t":37155000,"ach_ytd":94.0,"yoy_ytd":6.8,"trend":{"Jan":90.1,"Feb":90.6,"Mar":105.1,"Apr":89.1,"May":94.6}},{"sup":"วชิระ  บุตรนวน","region":"ภาคตะวันออกเฉียงเหนือ","branches":15,"provs":3,"may_s":6685614.76,"may_t":6690000,"ach_may":99.9,"gap_may":-4385,"yoy_may":35.9,"ytd_s":34045045.25,"ytd_t":31390000,"ach_ytd":108.5,"yoy_ytd":23.0,"trend":{"Jan":104.1,"Feb":116.5,"Mar":120.3,"Apr":103.0,"May":99.9}},{"sup":"ทวีโชค  จันทร์นอก","region":"ภาคกลาง","branches":17,"provs":4,"may_s":6221896.49,"may_t":6331000,"ach_may":98.3,"gap_may":-109104,"yoy_may":24.2,"ytd_s":28879273.66,"ytd_t":32350000,"ach_ytd":89.3,"yoy_ytd":1.3,"trend":{"Jan":80.2,"Feb":72.6,"Mar":96.6,"Apr":98.9,"May":98.3}},{"sup":"สุกฤตา  วิบูลย์","region":"ภาคกลาง","branches":12,"provs":2,"may_s":6144982.60,"may_t":7590000,"ach_may":81.0,"gap_may":-1445017,"yoy_may":-13.9,"ytd_s":31715221.32,"ytd_t":37900000,"ach_ytd":83.7,"yoy_ytd":-6.9,"trend":{"Jan":86.5,"Feb":82.4,"Mar":88.9,"Apr":79.6,"May":81.0}},{"sup":"ศุทธสิทธิ์ เหมฤดี","region":"ภาคตะวันออกเฉียงเหนือ","branches":14,"provs":3,"may_s":5787049.59,"may_t":6315000,"ach_may":91.6,"gap_may":-527950,"yoy_may":27.5,"ytd_s":28077234.93,"ytd_t":30406000,"ach_ytd":92.3,"yoy_ytd":2.6,"trend":{"Jan":78.1,"Feb":83.4,"Mar":108.4,"Apr":98.9,"May":91.6}},{"sup":"นภัสนันท์  นุกิจ","region":"ภาคกลาง","branches":19,"provs":4,"may_s":5704641.51,"may_t":6990000,"ach_may":81.6,"gap_may":-1285358,"yoy_may":6.2,"ytd_s":28207072.47,"ytd_t":34550000,"ach_ytd":81.6,"yoy_ytd":-1.4,"trend":{"Jan":88.3,"Feb":74.9,"Mar":86.2,"Apr":77.3,"May":81.6}},{"sup":"ชุติมันต์  ชัยชนะ","region":"ภาคใต้","branches":12,"provs":2,"may_s":5682519.92,"may_t":7160000,"ach_may":79.4,"gap_may":-1477480,"yoy_may":11.5,"ytd_s":29780246.88,"ytd_t":35170000,"ach_ytd":84.7,"yoy_ytd":13.2,"trend":{"Jan":86.6,"Feb":79.6,"Mar":86.2,"Apr":91.7,"May":79.4}},{"sup":"สุทธิพงษ์  บัวใหญ่","region":"ภาคตะวันออกเฉียงเหนือ","branches":16,"provs":4,"may_s":5024855.35,"may_t":6360000,"ach_may":79.0,"gap_may":-1335145,"yoy_may":3.7,"ytd_s":27022334.89,"ytd_t":31780000,"ach_ytd":85.0,"yoy_ytd":8.6,"trend":{"Jan":83.3,"Feb":83.3,"Mar":96.6,"Apr":82.5,"May":79.0}},{"sup":"กฤษดา  รุ่งกิจคณธร","region":"ภาคตะวันตก","branches":10,"provs":4,"may_s":4479818.79,"may_t":4103000,"ach_may":109.2,"gap_may":376819,"yoy_may":32.3,"ytd_s":20575736.36,"ytd_t":21554000,"ach_ytd":95.5,"yoy_ytd":9.5,"trend":{"Jan":84.9,"Feb":81.5,"Mar":101.6,"Apr":100.6,"May":109.2}},{"sup":"กิติยาภรณ์  นีระมนต์","region":"ภาคตะวันออกเฉียงเหนือ","branches":14,"provs":6,"may_s":4441784.71,"may_t":5405000,"ach_may":82.2,"gap_may":-963215,"yoy_may":11.8,"ytd_s":22930709.46,"ytd_t":26545500,"ach_ytd":86.4,"yoy_ytd":0.8,"trend":{"Jan":82.8,"Feb":85.0,"Mar":98.7,"Apr":82.6,"May":82.2}},{"sup":"ก้องเกียรติ  ช้อยชาญ","region":"ภาคใต้","branches":8,"provs":3,"may_s":3617209.09,"may_t":4250000,"ach_may":85.1,"gap_may":-632791,"yoy_may":20.3,"ytd_s":19716543.50,"ytd_t":20265500,"ach_ytd":97.3,"yoy_ytd":21.9,"trend":{"Jan":100.5,"Feb":100.6,"Mar":102.3,"Apr":98.8,"May":85.1}}];
+
+      // precompute — ใช้ SUP_DATA_MONTHLY ตาม selectedMonth
+      var _curMonth=selectedMonth||'May';
+      var _MONTHS_ORDER=['Jan','Feb','Mar','Apr','May'];
+      var _curIdx=_MONTHS_ORDER.indexOf(_curMonth);
+      var _ytdMonths=_curIdx>=0?_MONTHS_ORDER.slice(0,_curIdx+1):_MONTHS_ORDER;
+      var _supList=SUP_DATA_MONTHLY.map(function(r){
+        var m=r.monthly[_curMonth]||{act:0,tgt:0,ach:0,yoy:null};
+        /* YTD cumulative ถึงเดือนที่เลือก */
+        var ytd_act=_ytdMonths.reduce(function(s,mo){return s+((r.monthly[mo]||{}).act||0);},0);
+        var ytd_tgt=_ytdMonths.reduce(function(s,mo){return s+((r.monthly[mo]||{}).tgt||0);},0);
+        var ytd_ach=ytd_tgt>0?Math.round(ytd_act/ytd_tgt*1000)/10:0;
+        /* YoY YTD: cumulative act25 ถึงเดือนที่เลือก */
+        var ytd_act25=_ytdMonths.reduce(function(s,mo){return s+((r.monthly[mo]||{}).act25||0);},0);
+        var ytd_yoy=ytd_act25>0?Math.round((ytd_act-ytd_act25)/ytd_act25*1000)/10:null;
+        return {sup:r.sup,region:r.region,branches:r.branches,provs:r.provs,
+          may_s:m.act,may_t:m.tgt,ach_may:m.ach,yoy_may:m.yoy,
+          gap_may:m.act-m.tgt,
+          ytd_s:ytd_act,ytd_t:ytd_tgt,ach_ytd:ytd_ach,yoy_ytd:ytd_yoy,
+          trend:Object.fromEntries(Object.entries(r.monthly).map(function(kv){return[kv[0],kv[1].ach];}))
+        };
+      });
+      var totalMayS=_supList.reduce(function(s,r){return s+r.may_s;},0);
+      var totalMayT=_supList.reduce(function(s,r){return s+r.may_t;},0);
+      var totalAch=totalMayT>0?totalMayS/totalMayT*100:0;
+      var totalGap=totalMayS-totalMayT;
+      var totalYtdS=_supList.reduce(function(s,r){return s+r.ytd_s;},0);
+      var totalYtdT=_supList.reduce(function(s,r){return s+r.ytd_t;},0);
+      var below85=_supList.filter(function(r){return r.ach_may<80;}).sort(function(a,b){return a.ach_may-b.ach_may;});
+      var cntBelow=below85.length;
+      var totalGapBelow=below85.reduce(function(s,r){return s+r.gap_may;},0);
+      var d100=_supList.filter(function(r){return r.ach_may>=100;}).length;
+      var d90=_supList.filter(function(r){return r.ach_may>=90&&r.ach_may<100;}).length;
+      var d85=_supList.filter(function(r){return r.ach_may>=80&&r.ach_may<90;}).length;
+      var dB85=_supList.filter(function(r){return r.ach_may<80;}).length;
+      var maxGap=Math.abs(below85.length>0?below85.reduce(function(a,b){return Math.abs(a.gap_may)>Math.abs(b.gap_may)?a:b;}).gap_may:1);
+
+      // region summary
+      var regMap={};
+      _supList.forEach(function(r){
+        if(!regMap[r.region])regMap[r.region]={sups:0,sales:0,target:0,pcM:0,pcA:0};
+        regMap[r.region].sups++;regMap[r.region].sales+=r.may_s;regMap[r.region].target+=r.may_t;
+      });
+      /* คำนวณ PC รายภาค จาก __lastCyY + pcStores */
+      (function(){
+        if(!window.__lastCyY||!window.__pcStores) return;
+        var normS=function(s){return (s||'').replace(/\s+/g,' ').trim();};
+        /* สร้าง supName→region map จาก _supList */
+        var supRegMap={};
+        _supList.forEach(function(r){supRegMap[normS(r.sup)]=r.region;});
+        /* สร้าง supName→SAP[] map จาก __lastCyY */
+        var supSapMap={};
+        (window.__lastCyY||[]).forEach(function(row){
+          var sn=normS(row['PC Sup']||row['Sup']||'');
+          var sap=String(row.SAP||'').trim().replace(/\.0+$/,'');
+          if(!sn||!sap) return;
+          if(!supSapMap[sn]) supSapMap[sn]=[];
+          if(supSapMap[sn].indexOf(sap)<0) supSapMap[sn].push(sap);
+        });
+        /* match sup → region → sum PC */
+        Object.keys(supSapMap).forEach(function(sn){
+          /* หา region: exact match ก่อน, fallback first-token */
+          var reg=supRegMap[sn];
+          if(!reg){
+            var snFirst=sn.split(' ')[0];
+            Object.keys(supRegMap).forEach(function(k){if(!reg&&k.split(' ')[0]===snFirst)reg=supRegMap[k];});
+          }
+          if(!reg||!regMap[reg]) return;
+          supSapMap[sn].forEach(function(sap){
+            regMap[reg].pcM+=((window.__pcStores[sap]||{})['Beger_m']||0);
+            regMap[reg].pcA+=((window.__pcStores[sap]||{})['Beger']||0);
+          });
+        });
+      })();
+      /* คำนวณ PC รายภาค จาก __lastCyY + pcStores */
+      (function(){
+        if(!window.__lastCyY||!window.__pcStores) return;
+        var normS=function(s){return (s||'').replace(/\s+/g,' ').trim();};
+        var supRegMap={};
+        _supList.forEach(function(r){supRegMap[normS(r.sup)]=r.region;});
+        var supSapMap={};
+        (window.__lastCyY||[]).forEach(function(row){
+          var sn=normS(row['PC Sup']||row['Sup']||'');
+          var sap=String(row.SAP||'').trim().replace(/\.0+$/,'');
+          if(!sn||!sap) return;
+          if(!supSapMap[sn]) supSapMap[sn]=[];
+          if(supSapMap[sn].indexOf(sap)<0) supSapMap[sn].push(sap);
+        });
+        Object.keys(supSapMap).forEach(function(sn){
+          var reg=supRegMap[sn];
+          if(!reg){var snF=sn.split(' ')[0];Object.keys(supRegMap).forEach(function(k){if(!reg&&k.split(' ')[0]===snF)reg=supRegMap[k];});}
+          if(!reg||!regMap[reg]) return;
+          supSapMap[sn].forEach(function(sap){
+            regMap[reg].pcM+=((window.__pcStores[sap]||{})['Beger_m']||0);
+            regMap[reg].pcA+=((window.__pcStores[sap]||{})['Beger']||0);
+          });
+        });
+      })();
+      var regRows=Object.entries(regMap).sort(function(a,b){return b[1].sales-a[1].sales;});
+
+      return /*#__PURE__*/React.createElement('div',{style:{display:'flex',flexDirection:'column',height:'100%',gap:0,overflow:'hidden',fontFamily:'ui-sans-serif,system-ui,sans-serif'}},
+
+        /* Header bar */
+        /*#__PURE__*/React.createElement('div',{style:{background:'#0a1628',padding:'6px 14px',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid rgba(255,255,255,.08)',flexShrink:0}},
+          /*#__PURE__*/React.createElement('span',{style:{fontSize:13,fontWeight:700,color:'#94a3b8'}},'วิเคราะห์ Supervisor'),
+          /*#__PURE__*/React.createElement('div',{style:{marginLeft:'auto',display:'flex',gap:5}},
+            /*#__PURE__*/React.createElement('span',{style:{fontSize:10,padding:'2px 8px',borderRadius:4,background:'rgba(255,255,255,.06)',color:'#64748b'}},(selectedMonth||'All')+' '+(selectedYear||'')),
+            /*#__PURE__*/React.createElement('span',{style:{fontSize:10,padding:'2px 8px',borderRadius:4,background:'rgba(255,255,255,.06)',color:'#64748b'}},'ทุกภูมิภาค')
+          )
+        ),
+
+        /* Sub-tabs */
+        /*#__PURE__*/React.createElement('div',{style:{display:'flex',gap:3,padding:'6px 12px 0',background:'#0d1f3a',borderBottom:'1px solid rgba(255,255,255,.07)',flexShrink:0}},
+          ['summary','detail'].map(function(k){
+            var lbl=k==='summary'?'สรุปภาพรวม':'รายละเอียด Sup';
+            return /*#__PURE__*/React.createElement('button',{key:k,onClick:function(){setSupSubTab(k);},style:{padding:'7px 18px',fontSize:12,fontWeight:700,borderRadius:'8px 8px 0 0',border:'1px solid '+(supSubTab===k?'rgba(96,165,250,.4)':'rgba(255,255,255,.15)'),borderBottom:'none',cursor:'pointer',transition:'all .15s',background:supSubTab===k?'#0f172a':'rgba(255,255,255,.07)',color:supSubTab===k?'#60a5fa':'#94a3b8',boxShadow:supSubTab===k?'0 -2px 8px rgba(96,165,250,.15)':'none'}},lbl);
+          })
+        ),
+
+        /* CONTENT */
+        /*#__PURE__*/React.createElement('div',{style:{flex:1,overflow:'hidden',padding:'8px 12px',display:'flex',flexDirection:'column',gap:7,minHeight:0}},
+
+          supSubTab==='summary'?/*#__PURE__*/React.createElement(React.Fragment,{style:{display:'contents'}},
+
+            /* KPI row */
+            /*#__PURE__*/React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6,flexShrink:0}},
+              [
+                {l:'Sup ทั้งหมด',v:_supList.length+' คน',s:'410 สาขา · 6 ภูมิภาค',c:'#60a5fa'},
+                {l:'ยอดรวม ('+_curMonth+')',v:fmtMB(totalMayS),s:'เป้า '+fmtMB(totalMayT),c:'#e2e8f0'},
+                {l:'Ach% รวม',v:totalAch.toFixed(1)+'%',s:'ขาดเป้า '+fmtMB(Math.abs(totalGap)),c:'#fbbf24'},
+                {l:'ต้องติดตาม (<80%)',v:cntBelow+' คน',s:'Ach <80%',c:'#f87171'},
+                {l:'Avg ยอดขาย/Sup',v:fmtMB(totalMayS/_supList.length),s:'เป้า '+fmtMB(totalMayT/_supList.length),c:'#a78bfa'},
+                {l:'Avg สาขา/Sup',v:Math.round(_supList.reduce(function(s,r){return s+r.branches;},0)/_supList.length)+' สาขา',s:'รวม '+_supList.reduce(function(s,r){return s+r.branches;},0)+' สาขา',c:'#38bdf8'}
+              ].map(function(k,i){
+                return /*#__PURE__*/React.createElement('div',{key:i,style:{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',borderRadius:8,padding:'8px 12px'}},
+                  /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#64748b',fontWeight:700,textTransform:'uppercase',letterSpacing:'.4px',marginBottom:3}},k.l),
+                  /*#__PURE__*/React.createElement('div',{style:{fontSize:22,fontWeight:800,color:k.c,lineHeight:1.1}},k.v),
+                  /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:i===2?'#f87171':'#64748b',marginTop:2}},k.s)
+                );
+              })
+            ),
+
+            /* Top row: Distribution + Region */
+            /*#__PURE__*/React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,flex:'0 0 auto'}},
+
+              /*#__PURE__*/React.createElement('div',{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:8,overflow:'hidden'}},
+                /*#__PURE__*/React.createElement('div',{style:{padding:'6px 12px',borderBottom:'1px solid rgba(255,255,255,.06)',fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.3px'}},'ACH% DISTRIBUTION · '+_supList.length+' SUP'),
+                /*#__PURE__*/React.createElement('div',{style:{padding:'8px 12px',display:'flex',flexDirection:'column',gap:7}},
+                  [{l:'≥100%',n:d100,c:'#34d399',w:d100/_supList.length*100},{l:'90–99%',n:d90,c:'#34d399',w:d90/_supList.length*100,op:.6},{l:'80–89%',n:d85,c:'#fbbf24',w:d85/_supList.length*100},{l:'<80%',n:dB85,c:'#f87171',w:dB85/_supList.length*100}].map(function(x,i){
+                    return /*#__PURE__*/React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:8,minHeight:32,padding:'4px 0'}},
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:12,color:x.c,width:56,flexShrink:0,fontWeight:600}},x.l),
+                      /*#__PURE__*/React.createElement('div',{style:{flex:1,height:14,background:'rgba(255,255,255,.06)',borderRadius:4,overflow:'hidden'}},
+                        /*#__PURE__*/React.createElement('div',{style:{width:x.w+'%',height:'100%',background:x.c,borderRadius:4,opacity:x.op||1}})
+                      ),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:12,color:'#cbd5e1',width:40,textAlign:'right',fontWeight:600}},x.n+' คน')
+                    );
+                  })
+                )
+              ),
+
+              /*#__PURE__*/React.createElement('div',{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:8,overflow:'hidden'}},
+                /*#__PURE__*/React.createElement('div',{style:{padding:'6px 12px',borderBottom:'1px solid rgba(255,255,255,.06)',fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.3px'}},/*#__PURE__*/React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+                    /*#__PURE__*/React.createElement('span',null,'สรุปรายภูมิภาค · MAY'),
+                    /*#__PURE__*/React.createElement('div',{style:{display:'flex',gap:10,fontSize:10,color:'#64748b'}},
+                      /*#__PURE__*/React.createElement('span',{style:{color:'#fbbf24'}},'แผน'),
+                      /*#__PURE__*/React.createElement('span',{style:{color:'#60a5fa'}},'จริง'),
+                      /*#__PURE__*/React.createElement('span',{style:{color:'#f87171'}},'ขาด')
+                    )
+                  )),
+                /*#__PURE__*/React.createElement('div',null,
+                  regRows.map(function(entry,i){
+                    var k=entry[0],v=entry[1];
+                    var ach=v.target>0?v.sales/v.target*100:0;
+                    return /*#__PURE__*/React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',borderBottom:i<regRows.length-1?'1px solid rgba(255,255,255,.04)':'none'}},
+                      /*#__PURE__*/React.createElement('div',{style:{width:8,height:8,borderRadius:'50%',background:REG_COLOR[k]||'#94a3b8',flexShrink:0}}),
+                      /*#__PURE__*/React.createElement('div',{style:{flex:1,fontSize:12,fontWeight:600,color:'#e2e8f0'}},(REG_SHORT[k]||k)),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#64748b',width:36}},v.sups+' Sup'),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:12,fontFamily:'monospace',color:'#cbd5e1',width:48,textAlign:'right'}},fmtMB(v.sales)),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:13,fontWeight:800,color:aC(ach),width:34,textAlign:'right'}},Math.round(ach)+'%'),
+                      /*#__PURE__*/React.createElement('div',{style:{width:1,height:14,background:'rgba(255,255,255,.1)',flexShrink:0}}),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#fbbf24',width:24,textAlign:'right',fontWeight:700}},v.pcM||'–'),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#60a5fa',width:24,textAlign:'right',fontWeight:700}},v.pcA||'–'),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:(v.pcM-v.pcA)>0?'#f87171':'#34d399',width:24,textAlign:'right',fontWeight:700}},(v.pcM&&v.pcA)?(v.pcM-v.pcA>0?v.pcM-v.pcA:'–'):'–')
+                    );
+                  })
+                )
+              )
+            ),
+
+            /* Bottom row: Gap + Trend — sorted by ach_may asc */
+            /*#__PURE__*/React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,flex:1,minHeight:0}},
+
+              /* GAP ANALYSIS */
+              /*#__PURE__*/React.createElement('div',{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column'}},
+                /*#__PURE__*/React.createElement('div',{style:{padding:'6px 12px',borderBottom:'1px solid rgba(255,255,255,.06)',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}},
+                  /*#__PURE__*/React.createElement('div',null,
+                    /*#__PURE__*/React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.3px'}},'GAP ANALYSIS · ยอดที่ขาดเป้า'),
+                    /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#64748b',marginTop:1}},'เฉพาะ Sup ที่ Ach < 80% · เรียงจากน้อยสุด')
+                  ),
+                  /*#__PURE__*/React.createElement('span',{style:{fontSize:11,padding:'3px 10px',borderRadius:5,background:'rgba(248,113,113,.1)',color:'#f87171',fontWeight:700}},'รวมขาด '+fmtMB(Math.abs(totalGapBelow)))
+                ),
+                /*#__PURE__*/React.createElement('div',{style:{padding:'8px 12px',display:'grid',gridTemplateColumns:below85.length>6?'1fr 1fr':'1fr',gap:below85.length>6?'4px 12px':6}},
+                  below85.map(function(r,i){
+                    var pct=Math.abs(r.gap_may)/maxGap*100;
+                    var nm=r.sup.trim().split(/\s+/)[0];
+                    return /*#__PURE__*/React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:8,minHeight:34,padding:'3px 0'}},
+                      /*#__PURE__*/React.createElement('div',{style:{width:90,fontSize:12,fontWeight:600,color:'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}},nm),
+                      /*#__PURE__*/React.createElement('div',{style:{flex:1,height:14,background:'rgba(255,255,255,.05)',borderRadius:4,overflow:'hidden'}},
+                        /*#__PURE__*/React.createElement('div',{style:{width:pct+'%',height:'100%',background:'#f87171',borderRadius:4,opacity:.8}})
+                      ),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#f87171',width:56,textAlign:'right',flexShrink:0,fontFamily:'monospace'}},fmtM(r.gap_may)),
+                      /*#__PURE__*/React.createElement('div',{style:{fontSize:13,fontWeight:800,color:aC(r.ach_may),width:38,textAlign:'right',flexShrink:0}},r.ach_may.toFixed(0)+'%')
+                    );
+                  })
+                )
+              ),
+
+              /* TREND */
+              /*#__PURE__*/React.createElement('div',{style:{background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column'}},
+                /*#__PURE__*/React.createElement('div',{style:{padding:'6px 12px',borderBottom:'1px solid rgba(255,255,255,.06)',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}},
+                  /*#__PURE__*/React.createElement('div',null,
+                    /*#__PURE__*/React.createElement('div',{style:{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.3px'}},'TREND ACH% · JAN–'+selectedMonth),
+                    /*#__PURE__*/React.createElement('div',{style:{fontSize:11,color:'#64748b',marginTop:1}},'เฉพาะ Ach < 80% · เรียงจากน้อยสุด')
+                  ),
+                  /*#__PURE__*/React.createElement('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+                    [{c:'#34d399',l:'≥90%'},{c:'#fbbf24',l:'80–89%'},{c:'#f87171',l:'<80%'}].map(function(x,i){
+                      return /*#__PURE__*/React.createElement('span',{key:i,style:{fontSize:11,color:x.c,fontWeight:600}},'\u25CF '+x.l);
+                    })
+                  )
+                ),
+                /*#__PURE__*/React.createElement('div',{style:{padding:'8px 12px',display:'flex',flexDirection:'column',gap:4,overflow:'auto',flex:1}},
+                  /*#__PURE__*/React.createElement('div',{style:{display:'flex',alignItems:'center',gap:4,marginBottom:4,paddingLeft:94}},
+                    MONTHS_LABEL.map(function(m,i){
+                      return /*#__PURE__*/React.createElement('div',{key:i,style:{width:32,textAlign:'center',fontSize:11,color:i===4?'#60a5fa':'#64748b',fontWeight:700}},m);
+                    }),
+                    /*#__PURE__*/React.createElement('div',{style:{width:32,textAlign:'right',fontSize:11,color:'#64748b',fontWeight:700}},'avg')
+                  ),
+                  below85.map(function(r,i){
+                    var nm=r.sup.trim().split(/\s+/)[0];
+                    var vals=MONTHS_KEY.map(function(k){return r.trend[k]||0;});
+                    var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+                    return /*#__PURE__*/React.createElement('div',{key:i,style:{display:'flex',alignItems:'center',gap:4}},
+                      /*#__PURE__*/React.createElement('div',{style:{width:90,fontSize:12,fontWeight:600,color:'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}},nm),
+                      vals.map(function(v,j){
+                        var col=tC(v);
+                        return /*#__PURE__*/React.createElement('div',{key:j,style:{width:32,height:22,borderRadius:4,background:col.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:col.tx,flexShrink:0}},Math.round(v));
+                      }),
+                      /*#__PURE__*/React.createElement('div',{style:{width:32,fontSize:12,fontWeight:800,color:aC(avg),textAlign:'right',flexShrink:0}},Math.round(avg))
+                    );
+                  })
+                )
+              )
+            )
+
+          ) : /*#__PURE__*/React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:0,flex:1,overflow:'hidden'}},
+
+            /* TAB 2: Detail table */
+            /*#__PURE__*/React.createElement('div',{style:{overflowY:'auto',overflowX:'hidden',flex:1,minHeight:0}},
+              (function(){
+                var sortKey=supSort.key, sortDir=supSort.dir;
+                var sorted=_supList.slice().sort(function(a,b){
+                  var av=sortKey==='sup'?a.sup:(a[sortKey]||0);
+                  var bv=sortKey==='sup'?b.sup:(b[sortKey]||0);
+                  if(sortKey==='sup') return sortDir==='asc'?av.localeCompare(bv,'th'):bv.localeCompare(av,'th');
+                  return sortDir==='asc'?av-bv:bv-av;
+                });
+                var sBtn=function(key,label,extraStyle){
+                  var active=sortKey===key;
+                  var s=Object.assign({padding:'5px 8px',fontSize:11,fontWeight:700,cursor:'pointer',userSelect:'none',borderBottom:'1px solid rgba(255,255,255,.08)',color:active?'#fff':'#94a3b8',background:active?'rgba(255,255,255,.04)':'#0a1628',transition:'all .1s',whiteSpace:'nowrap',verticalAlign:'middle'},extraStyle||{});
+                  var hint=active?(sortDir==='asc'?' ▲':' ▼'):' ↕';
+                  var hintColor=active?'inherit':'rgba(255,255,255,.25)';
+                  return React.createElement('th',{style:s,onClick:function(){setSupSort(function(p){return p.key===key?{key:key,dir:p.dir==='asc'?'desc':'asc'}:{key:key,dir:'desc'};});}},
+                    React.createElement('span',null,label),
+                    React.createElement('span',{style:{fontSize:9,color:hintColor,marginLeft:2}},hint)
+                  );
+                };
+                var sBtnR2=function(key,label,extraStyle){
+                  var active=sortKey===key;
+                  var s=Object.assign({padding:'6px 8px',fontSize:11,fontWeight:700,cursor:'pointer',userSelect:'none',borderBottom:'1px solid rgba(255,255,255,.08)',color:active?'#fff':'#94a3b8',background:active?'rgba(255,255,255,.04)':'#0a1628',transition:'all .1s',whiteSpace:'nowrap',verticalAlign:'middle'},extraStyle||{});
+                  var hint=active?(sortDir==='asc'?' ▲':' ▼'):' ↕';
+                  var hintColor=active?'inherit':'rgba(255,255,255,.25)';
+                  return React.createElement('th',{rowSpan:2,style:s,onClick:function(){setSupSort(function(p){return p.key===key?{key:key,dir:p.dir==='asc'?'desc':'asc'}:{key:key,dir:'desc'};});}},
+                    React.createElement('span',null,label),
+                    React.createElement('span',{style:{fontSize:9,color:hintColor,marginLeft:2,display:'block',textAlign:'center'}},hint)
+                  );
+                };
+                /* col widths */
+                var W={no:28,sup:140,reg:52,br:44,pv:44,pcM:42,pcA:42,pcX:42,tgt:96,act:100,ach:52,yoy:52,ytd_t:96,ytd_a:100,ytd_ach:52,ytd_yoy:52,lfl_br:56,lfl_g:60};
+                var thBase={borderBottom:'1px solid rgba(255,255,255,.08)',background:'#0a1628',verticalAlign:'middle',whiteSpace:'nowrap'};
+                var thGrp=function(col,extra){return Object.assign({},thBase,{padding:'0 6px',fontSize:11,fontWeight:700,textAlign:'center',height:32},extra||{});};
+                var thSub=function(col,extra){return Object.assign({},thBase,{padding:'0 4px',fontSize:10,fontWeight:700,textAlign:'center',height:22,lineHeight:'1.1',whiteSpace:'normal',wordBreak:'keep-all'},extra||{});};
+                var tdBase={padding:'6px 6px',fontSize:13,borderBottom:'1px solid rgba(255,255,255,.04)'};
+                return React.createElement('table',{style:{width:'100%',borderCollapse:'collapse',tableLayout:'fixed',fontSize:13}},
+                  React.createElement('colgroup',null,
+                    React.createElement('col',{style:{width:W.no}}),
+                    React.createElement('col',{style:{width:W.sup}}),
+                    React.createElement('col',{style:{width:W.reg}}),
+                    React.createElement('col',{style:{width:W.br}}),
+                    React.createElement('col',{style:{width:W.pv}}),
+                    React.createElement('col',{style:{width:W.pcM}}),
+                    React.createElement('col',{style:{width:W.pcA}}),
+                    React.createElement('col',{style:{width:W.pcX}}),
+                    React.createElement('col',{style:{width:W.tgt}}),
+                    React.createElement('col',{style:{width:W.act}}),
+                    React.createElement('col',{style:{width:W.ach}}),
+                    React.createElement('col',{style:{width:W.yoy}}),
+                    React.createElement('col',{style:{width:W.ytd_t}}),
+                    React.createElement('col',{style:{width:W.ytd_a}}),
+                    React.createElement('col',{style:{width:W.ytd_ach}}),
+                    React.createElement('col',{style:{width:W.ytd_yoy}}),
+                    React.createElement('col',{style:{width:W.lfl_br}}),
+                    React.createElement('col',{style:{width:W.lfl_g}})
+                  ),
+                  React.createElement('thead',{className:'sup-detail-thead',style:{position:'sticky',top:0,zIndex:10,background:'#0a1628'}},
+                    /* ROW 1 — group labels */
+                    React.createElement('tr',null,
+                      /* # */
+                      React.createElement('th',{rowSpan:2,style:Object.assign({},thBase,{padding:'0 6px',fontSize:11,fontWeight:700,color:'#475569',width:W.no,textAlign:'center',height:60})},'#'),
+                      /* Supervisor */
+                      React.createElement('th',{rowSpan:2,style:Object.assign({},thBase,{padding:'0 8px',fontSize:11,fontWeight:700,color:sortKey==='sup'?'#fff':'#94a3b8',width:W.sup,textAlign:'left',cursor:'pointer',background:sortKey==='sup'?'rgba(255,255,255,.05)':'#0a1628',height:60,overflow:'hidden',textOverflow:'ellipsis'}),onClick:function(){setSupSort(function(p){return p.key==='sup'?{key:'sup',dir:p.dir==='asc'?'desc':'asc'}:{key:'sup',dir:'asc'};});}},
+                        'Supervisor',
+                        React.createElement('span',{style:{fontSize:9,color:sortKey==='sup'?'inherit':'rgba(255,255,255,.25)',marginLeft:3}},sortKey==='sup'?(sortDir==='asc'?' ▲':' ▼'):' ↕')
+                      ),
+                      /* ภูมิภาค */
+                      React.createElement('th',{rowSpan:2,style:Object.assign({},thBase,{padding:'0 4px',fontSize:11,fontWeight:700,color:'#475569',width:W.reg,textAlign:'center',height:60})},'ภูมิภาค'),
+                      /* สาขา */
+                      React.createElement('th',{rowSpan:2,style:Object.assign({},thBase,{padding:'0 4px',fontSize:11,fontWeight:700,color:sortKey==='branches'?'#fff':'#94a3b8',width:W.br,textAlign:'right',cursor:'pointer',background:sortKey==='branches'?'rgba(255,255,255,.05)':'#0a1628',height:60}),onClick:function(){setSupSort(function(p){return p.key==='branches'?{key:'branches',dir:p.dir==='asc'?'desc':'asc'}:{key:'branches',dir:'desc'};});}},
+                        React.createElement('div',{style:{textAlign:'center',lineHeight:1.3}},'สาขา',React.createElement('div',{style:{fontSize:9,color:sortKey==='branches'?'inherit':'rgba(255,255,255,.25)'}},'↕'))
+                      ),
+                      /* จังหวัด */
+                      React.createElement('th',{rowSpan:2,style:Object.assign({},thBase,{padding:'0 4px',fontSize:11,fontWeight:700,color:sortKey==='provs'?'#fff':'#94a3b8',width:W.pv,textAlign:'center',cursor:'pointer',background:sortKey==='provs'?'rgba(255,255,255,.05)':'#0a1628',height:60}),onClick:function(){setSupSort(function(p){return p.key==='provs'?{key:'provs',dir:p.dir==='asc'?'desc':'asc'}:{key:'provs',dir:'desc'};});}},
+                        React.createElement('div',{style:{textAlign:'center',lineHeight:1.3}},'จ.หวัด',React.createElement('div',{style:{fontSize:9,color:sortKey==='provs'?'inherit':'rgba(255,255,255,.25)'}},'↕'))
+                      ),
+                      /* PC group */
+                      React.createElement('th',{colSpan:3,style:thGrp(null,{color:'#fbbf24',borderLeft:'3px solid rgba(251,191,36,.6)',letterSpacing:.3})},'── PC ──'),
+                      /* May group */
+                      React.createElement('th',{colSpan:4,style:thGrp(null,{color:'#60a5fa',borderLeft:'3px solid rgba(96,165,250,.6)',letterSpacing:.3})},'── '+selectedMonth+' 2026 ──'),
+                      /* YTD group */
+                      React.createElement('th',{colSpan:4,style:thGrp(null,{color:'#a78bfa',borderLeft:'3px solid rgba(167,139,250,.6)',letterSpacing:.3})},'── YTD Jan–'+selectedMonth+' ──'),
+                      /* LFL group */
+                      React.createElement('th',{colSpan:2,style:thGrp(null,{color:'#34d399',borderLeft:'3px solid rgba(52,211,153,.5)',letterSpacing:.3})},'── LFL ──')
+                    ),
+                    /* ROW 2 — sub-headers */
+                    React.createElement('tr',null,
+                      /* PC subs */
+                      React.createElement('th',{style:thSub(null,{color:'#fbbf24',borderLeft:'3px solid rgba(251,191,36,.6)'})},'แผน'),
+                      React.createElement('th',{style:thSub(null,{color:'#60a5fa'})},'จริง'),
+                      React.createElement('th',{style:thSub(null,{color:'#f87171'})},'ขาด'),
+                      /* May subs */
+                      sBtn('may_t','Target',{textAlign:'right',borderLeft:'3px solid rgba(96,165,250,.55)',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('may_s','Actual',{textAlign:'right',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('ach_may','Ach%',{textAlign:'center',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('yoy_may','YoY',{textAlign:'center',verticalAlign:'middle',height:22,fontSize:10}),
+                      /* YTD subs */
+                      sBtn('ytd_t','Target',{textAlign:'right',borderLeft:'3px solid rgba(167,139,250,.55)',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('ytd_s','Actual',{textAlign:'right',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('ach_ytd','Ach%',{textAlign:'center',verticalAlign:'middle',height:22,fontSize:10}),
+                      sBtn('yoy_ytd','YoY',{textAlign:'center',verticalAlign:'middle',height:22,fontSize:10}),
+                      /* LFL subs */
+                      React.createElement('th',{style:thSub(null,{color:'#34d399',borderLeft:'3px solid rgba(52,211,153,.5)',textAlign:'center'})},'LFL br'),
+                      React.createElement('th',{style:thSub(null,{color:'#34d399',textAlign:'center'})},'Growth%')
+                    )
+                  ),
+                  React.createElement('tbody',null,
+                    sorted.map(function(r,i){
+                      var nm=r.sup.trim();
+                      var reg=REG_SHORT[r.region]||r.region;
+                      var regC=REG_COLOR[r.region]||'#94a3b8';
+                      var yoyC=function(v){return v===null?'#64748b':v>=0?'#34d399':'#f87171';};
+                      var yoyS=function(v){return v===null?'—':(v>=0?'▲':'▼')+Math.abs(v).toFixed(0)+'%';};
+                      var pcData=window.__pcStores&&window.__pcStores[nm];
+                      /* LFL data */
+                      var lflRec=LFL_DATA[nm]||LFL_DATA[r.sup]||LFL_DATA[r.sup.trim()]||null;
+                      /* LFL YTD: สะสมถึงเดือนที่เลือก */
+                      var lflYtdAct26=_ytdMonths.reduce(function(s,mo){var mm=lflRec&&lflRec.monthly?lflRec.monthly[mo]:null;return s+(mm?mm.act26:0);},0);
+                      var lflYtdAct25=_ytdMonths.reduce(function(s,mo){var mm=lflRec&&lflRec.monthly?lflRec.monthly[mo]:null;return s+(mm?mm.act25:0);},0);
+                      var lflMon=lflRec&&lflRec.monthly?lflRec.monthly[_curMonth]:null;
+                      var lflBr=lflMon?lflMon.lfl_br:null;
+                      var lflTotal=lflMon?lflMon.total_br:null;
+                      var lflG=lflYtdAct25>0?Math.round((lflYtdAct26-lflYtdAct25)/lflYtdAct25*1000)/10:null;
+                      var modelPC=pcData?pcData.model:null;
+                      var actPC=pcData?pcData.actual:null;
+                      var missPC=(modelPC!==null&&actPC!==null)?(modelPC-actPC):null;
+                      var rowBg=r.ach_may<80?'rgba(248,113,113,.05)':i%2===0?'transparent':'rgba(255,255,255,.015)';
+                      var td=function(content,extra){return React.createElement('td',{style:Object.assign({},tdBase,{background:rowBg},extra||{})},content);};
+                      return React.createElement('tr',{key:i,style:{background:rowBg}},
+                        /* # */
+                        td(i+1,{fontSize:11,color:'#475569',textAlign:'center'}),
+                        /* Supervisor name */
+                        React.createElement('td',{style:Object.assign({},tdBase,{background:rowBg,padding:'6px 8px',fontSize:13,fontWeight:700,color:r.ach_may<80?'#fda4af':'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'})},nm),
+                        /* ภูมิภาค badge */
+                        td(React.createElement('span',{style:{display:'inline-block',fontSize:11,padding:'2px 6px',borderRadius:4,fontWeight:600,background:'rgba('+regC.slice(1).match(/../g).map(function(h){return parseInt(h,16);}).join(',')+', .18)',color:regC,whiteSpace:'nowrap'}},reg),{textAlign:'center'}),
+                        /* สาขา */
+                        td(r.branches,{textAlign:'right',fontSize:13,color:'#cbd5e1',fontWeight:600}),
+                        /* จังหวัด */
+                        td(r.provs,{textAlign:'right',fontSize:13,color:'#cbd5e1',fontWeight:600}),
+                        /* PC แผน */
+                        td(modelPC!==null?modelPC:'–',{textAlign:'center',fontSize:13,fontWeight:700,color:'#fbbf24',borderLeft:'3px solid rgba(251,191,36,.35)'}),
+                        /* PC จริง */
+                        td(actPC!==null?actPC:'–',{textAlign:'center',fontSize:13,fontWeight:800,color:actPC!==null?(missPC>0?'#f87171':'#60a5fa'):'#475569'}),
+                        /* PC ขาด */
+                        td(missPC!==null?(missPC>0?missPC:'–'):'–',{textAlign:'center',fontSize:13,fontWeight:700,color:missPC>0?'#f87171':'#34d399'}),
+                        /* May Target */
+                        td(fmtN(r.may_t),{textAlign:'right',fontFamily:'monospace',fontSize:12,color:'#94a3b8',borderLeft:'3px solid rgba(96,165,250,.35)'}),
+                        /* May Actual */
+                        td(fmtN(r.may_s),{textAlign:'right',fontFamily:'monospace',fontSize:12,fontWeight:700,color:r.ach_may<80?'#f87171':'#e2e8f0'}),
+                        /* May Ach% */
+                        td(React.createElement('span',{style:{fontSize:13,fontWeight:800,color:aC(r.ach_may)}},r.ach_may.toFixed(0)+'%'),{textAlign:'center'}),
+                        /* May YoY */
+                        td(yoyS(r.yoy_may),{textAlign:'center',fontSize:12,fontWeight:700,color:yoyC(r.yoy_may)}),
+                        /* YTD Target */
+                        td(fmtN(r.ytd_t),{textAlign:'right',fontFamily:'monospace',fontSize:12,color:'#94a3b8',borderLeft:'3px solid rgba(167,139,250,.35)'}),
+                        /* YTD Actual */
+                        td(fmtN(r.ytd_s),{textAlign:'right',fontFamily:'monospace',fontSize:12,fontWeight:700,color:'#e2e8f0'}),
+                        /* YTD Ach% */
+                        td(r.ach_ytd.toFixed(0)+'%',{textAlign:'center',fontSize:13,fontWeight:800,color:aC(r.ach_ytd)}),
+                        /* YTD YoY */
+                        td(yoyS(r.yoy_ytd),{textAlign:'center',fontSize:12,fontWeight:700,color:yoyC(r.yoy_ytd)}),
+                        /* LFL สาขา */
+                        td(lflBr!==null?(lflBr+'/'+lflTotal):'—',{textAlign:'center',fontSize:12,color:'#64748b',borderLeft:'3px solid rgba(52,211,153,.35)'}),
+                        /* LFL Growth% */
+                        td(lflG!==null?React.createElement('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:2}},
+                          React.createElement('span',{style:{fontSize:12,fontWeight:700,color:lflG>=0?'#34d399':'#f87171'}},(lflG>=0?'▲':'▼')+Math.abs(lflG).toFixed(0)+'%'),
+                          React.createElement('div',{style:{width:36,height:3,background:'rgba(255,255,255,.1)',borderRadius:2}},
+                            React.createElement('div',{style:{width:Math.min(Math.abs(lflG)/50*100,100)+'%',height:3,borderRadius:2,background:lflG>=0?'#34d399':'#f87171'}})
+                          )
+                        ):'—',{textAlign:'center'})
+                      );
+                    })
+                  )
+                );
+              })()
+            )
+          )
+        )
+      );
+    }
+
     return null;
   };
   const printPages = [{
@@ -4572,7 +5466,7 @@ function App() {
     src: "data:image/png;base64,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",
     alt: "Beger Logo",
     style: {height: "44px", objectFit: "contain"}
-  }), React.createElement("span",null," Beger Sales Out Intelligence",React.createElement("span",{style:{fontSize:"10px",color:"#94a3b8",fontWeight:400,marginLeft:"10px",opacity:0.75,verticalAlign:"middle",letterSpacing:"0.3px"}},"v7.1"))), /*#__PURE__*/React.createElement("div", {
+  }), React.createElement("span",null," Beger Sales Out Intelligence",React.createElement("span",{style:{fontSize:"10px",color:"#94a3b8",fontWeight:400,marginLeft:"10px",opacity:0.75,verticalAlign:"middle",letterSpacing:"0.3px"}},"v8.0"))), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-3"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: handlePrint,
@@ -4649,10 +5543,10 @@ function App() {
     );
   })(), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 overflow-x-auto"
-  }, ['ภาพรวมยอดขาย', 'LFL Analysis', 'แนวโน้ม MS%', 'คู่แข่ง', 'Branch Health', 'วิเคราะห์กลุ่ม MS%', 'แผนที่ภูมิภาค', 'Store Matrix', 'สรุปรายห้าง', 'วิเคราะห์ Size'].map((t, i) => /*#__PURE__*/React.createElement("button", {
+  }, ['ภาพรวมยอดขาย', 'LFL Analysis', 'แนวโน้ม MS%', 'คู่แข่ง', 'Branch Health', 'วิเคราะห์กลุ่ม MS%', 'แผนที่ภูมิภาค', 'Store Matrix', 'สรุปรายห้าง', 'วิเคราะห์ Size', 'วิเคราะห์ PC', 'วิเคราะห์ Sup'].map((t, i) => /*#__PURE__*/React.createElement("button", {
     key: t,
     onClick: () => setActiveTab(i + 1),
-    className: `px-6 py-2.5 text-xs font-black rounded-t-xl transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-[#003876] text-white shadow-lg translate-y-[-2px]' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`
+    className: `px-3 py-1.5 text-[11px] font-black rounded-t-lg transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-[#003876] text-white shadow-lg translate-y-[-2px]' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`
   }, t))), /*#__PURE__*/React.createElement("div", {
     className: "relative w-full overflow-hidden bg-white rounded-b-2xl rounded-tr-2xl shadow-2xl border transition-all duration-500",
     style: {
@@ -5663,6 +6557,99 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     }
   }
 
+  /* ── patchSupPCTable: patch Model/Act/ขาด in Supervisor detail tab ── */
+  var supPCTimer=null;
+  function patchSupPCTable(){
+    if(!pcStores) return;
+    // Build supName→SAP[] map from window.__lastCyY (CSV rows have "PC Sup" field)
+    var cyY=window.__lastCyY||[];
+    var supSapMap={};
+    cyY.forEach(function(r){
+      var supName=(r['PC Sup']||r['pc sup']||r['Sup']||'').trim();
+      if(!supName) return;
+      var sap=String(r.SAP||r[' SAP ']||r['SAP ']||r[' SAP']||'').trim().replace(/\.0+$/,'');
+      if(!sap) return;
+      if(!supSapMap[supName]) supSapMap[supName]=[];
+      if(supSapMap[supName].indexOf(sap)<0) supSapMap[supName].push(sap);
+    });
+    if(!Object.keys(supSapMap).length){
+      log('[SUP-PC] no sup→SAP map from cyY ('+cyY.length+' rows)');
+      return;
+    }
+
+    // Find the Supervisor detail table tbody rows
+    // Table col structure: #(0) Sup(1) ภาค(2) สาขา(3) จว.(4) Model(5) Act(6) ขาด(7) ...
+    var tbodies=document.querySelectorAll('tbody');
+    var supTbody=null;
+    tbodies.forEach(function(tb){
+      var trs=tb.querySelectorAll('tr');
+      if(trs.length<5) return;
+      // Heuristic: sup table rows have ≥13 td cells
+      var firstTds=trs[0]?trs[0].querySelectorAll('td'):[];
+      if(firstTds.length>=13) supTbody=tb;
+    });
+    if(!supTbody){log('[SUP-PC] sup tbody not found');return;}
+
+    var trs=supTbody.querySelectorAll('tr');
+    var patched=0;
+    trs.forEach(function(tr){
+      var tds=tr.querySelectorAll('td');
+      if(tds.length<8) return;
+      // Sup name is in td[1]
+      var supName=(tds[1]?tds[1].textContent:'').trim();
+      if(!supName) return;
+
+      // Match supName against supSapMap keys
+      // Normalize: collapse multiple spaces → single space for comparison
+      var normSup=function(s){return s.replace(/\s+/g,' ').trim();};
+      var supNorm=normSup(supName);
+      var supFirst=supNorm.split(' ')[0];
+      var matchKey=null;
+      Object.keys(supSapMap).forEach(function(k){
+        if(matchKey) return;
+        var kNorm=normSup(k);
+        if(kNorm===supNorm){matchKey=k;return;}
+        // first-name token match as fallback
+        var kFirst=kNorm.split(' ')[0];
+        if(kFirst&&kFirst===supFirst) matchKey=k;
+      });
+      if(!matchKey){log('[SUP-PC] no SAP map for: "'+supName+'"');return;}
+
+      var sapList=supSapMap[matchKey];
+      var model=0,actual=0;
+      sapList.forEach(function(sap){
+        model +=((pcStores[sap]||{})['Beger_m']||0);
+        actual+=((pcStores[sap]||{})['Beger']  ||0);
+      });
+      if(!model && !actual) return;
+      var miss=model-actual;
+
+      // td[5]=Model, td[6]=Act, td[7]=ขาด
+      var tdModel=tds[5], tdAct=tds[6], tdMiss=tds[7];
+      if(!tdModel||!tdAct||!tdMiss) return;
+
+      // Guard: skip if already correct
+      var curModel=(tdModel.textContent||'').trim();
+      var curAct  =(tdAct.textContent  ||'').trim();
+      if(String(curModel)===String(model) && String(curAct)===String(actual)) return;
+
+      tdModel.textContent=model;
+      tdModel.style.color='#fbbf24';
+      tdModel.style.fontWeight='700';
+
+      tdAct.textContent=actual;
+      tdAct.style.color=miss>0?'#f87171':'#60a5fa';
+      tdAct.style.fontWeight='800';
+
+      tdMiss.textContent=miss>0?miss:'–';
+      tdMiss.style.color=miss>0?'#f87171':'#34d399';
+      tdMiss.style.fontWeight='700';
+
+      patched++;
+    });
+    log('[SUP-PC] patched '+patched+' sup rows');
+  }
+
   /* ── MutationObserver: re-patch when DOM changes ── */
   var headerTimer=null;
   var obs=new MutationObserver(function(){
@@ -5677,6 +6664,8 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     colorTableTimer=setTimeout(patchColorTable, 250);
     clearTimeout(lflTableTimer);
     lflTableTimer=setTimeout(patchLflTable, 300);
+    clearTimeout(supPCTimer);
+    supPCTimer=setTimeout(patchSupPCTable, 350);
   });
 
   function patchHeader(){
@@ -5764,6 +6753,11 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
           // Patch LFL Analysis table Total-row PC
           setTimeout(patchLflTable,500);
           setTimeout(patchLflTable,1500);
+          // Patch Supervisor PC table
+          patchSupPCTable();
+          setTimeout(patchSupPCTable,500);
+          setTimeout(patchSupPCTable,1200);
+          setTimeout(patchSupPCTable,2500);
 
         }catch(err){
           btn.innerHTML='PC ทุกแบรนด์';
