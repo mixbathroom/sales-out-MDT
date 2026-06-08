@@ -5082,7 +5082,7 @@ function App() {
       })();
       var regRows=Object.entries(regMap).sort(function(a,b){return b[1].sales-a[1].sales;});
 
-      return /*#__PURE__*/React.createElement('div',{style:{display:'flex',flexDirection:'column',height:'100%',gap:0,overflow:'hidden',fontFamily:'ui-sans-serif,system-ui,sans-serif'}},
+      return /*#__PURE__*/React.createElement('div',{style:{display:'flex',flexDirection:'column',height:'100%',gap:0,overflow:'hidden',fontFamily:'ui-sans-serif,system-ui,sans-serif',borderRadius:16}},
 
         /* Header bar */
         /*#__PURE__*/React.createElement('div',{style:{background:'#0a1628',padding:'6px 14px',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid rgba(255,255,255,.08)',flexShrink:0}},
@@ -5248,6 +5248,7 @@ function App() {
                   if(sortKey==='sup') return sortDir==='asc'?av.localeCompare(bv,'th'):bv.localeCompare(av,'th');
                   return sortDir==='asc'?av-bv:bv-av;
                 });
+                var SUP_NICKNAME={'สุกฤตา  วิบูลย์':'ต๋าร์','ชไมพร  วรจักร์':'หมิว','นภัสนันท์  นุกิจ':'ต๋า','อรพิน  อ่อนละมูล':'ปุ๊ก','ทวีโชค  จันทร์นอก':'โก๋','ณัฐภาสรณ์  ศรีสวัสดิ์':'ญาญ่า','อรวรรณ  สวัสดี':'ต่าย','มินท์มันตา  จิโรจชัยเกียรติ':'มินทร์','กฤษดา  รุ่งกิจคณธร':'แทน','ทานตะวัน  ภูวรณ์':'ตะวัน','นฤมล  แหละหมัด':'น้อง','ชุติมันต์   ชัยชนะ':'ปลา','กัฌปนาทมณี  อนุมาตย์':'กระปุก','อนุชาติ  วัชราเกียรติ':'เบนซ์','ก้องเกียรติ  ช้อยชาญชัยกุล':'โกเอ็ม','เสกสัน  พันธุ':'เสก','ศุทธสิทธิ์ เหมฤดี':'บอล','ณัฐพล   สิงห์โต':'เบลล์','กิติยาภรณ์  นีระมนต์':'เปรี้ยว','วชิระ  บุตรนวน':'หนุ่ม','ณัฏฐ์วัฒน์  คำเกิด':'ต่อ','ปรัศนีย์  พิสุทธิเสรีวงศ์':'บิ๊ก','อภิมน  ดินดำ':'บิ๊ว','จิตรลดา ศรีสวัสดิ์':'ลม','สุทธิพงษ์  บัวใหญ่':'เท่ห์','ณัฐวุฒิ  ตะมะวิโมก':'โอ๋ด'};
                 var sBtn=function(key,label,extraStyle){
                   var active=sortKey===key;
                   var s=Object.assign({padding:'5px 8px',fontSize:11,fontWeight:700,cursor:'pointer',userSelect:'none',borderBottom:'1px solid rgba(255,255,255,.08)',color:active?'#fff':'#94a3b8',background:active?'rgba(255,255,255,.04)':'#0a1628',transition:'all .1s',whiteSpace:'nowrap',verticalAlign:'middle'},extraStyle||{});
@@ -5371,7 +5372,12 @@ function App() {
                         /* # */
                         td(i+1,{fontSize:11,color:'#475569',textAlign:'center'}),
                         /* Supervisor name */
-                        React.createElement('td',{style:Object.assign({},tdBase,{background:rowBg,padding:'6px 8px',fontSize:13,fontWeight:700,color:r.ach_may<80?'#fda4af':'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'})},nm),
+                        React.createElement('td',{style:Object.assign({},tdBase,{background:rowBg,padding:'4px 8px'})},
+                          React.createElement('div',{style:{display:'flex',flexDirection:'column',lineHeight:1.3}},
+                            React.createElement('span',{style:{fontSize:13,fontWeight:700,color:r.ach_may<80?'#fda4af':'#e2e8f0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},nm),
+                            SUP_NICKNAME[nm]?React.createElement('span',{style:{fontSize:10,color:'rgba(148,163,184,0.45)',fontWeight:400}},SUP_NICKNAME[nm]):null
+                          )
+                        ),
                         /* ภูมิภาค badge */
                         td(React.createElement('span',{style:{display:'inline-block',fontSize:11,padding:'2px 6px',borderRadius:4,fontWeight:600,background:'rgba('+regC.slice(1).match(/../g).map(function(h){return parseInt(h,16);}).join(',')+', .18)',color:regC,whiteSpace:'nowrap'}},reg),{textAlign:'center'}),
                         /* สาขา */
@@ -5548,7 +5554,7 @@ function App() {
     onClick: () => setActiveTab(i + 1),
     className: `px-3 py-1.5 text-[11px] font-black rounded-t-lg transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-[#003876] text-white shadow-lg translate-y-[-2px]' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`
   }, t))), /*#__PURE__*/React.createElement("div", {
-    className: "relative w-full overflow-hidden bg-white rounded-b-2xl rounded-tr-2xl shadow-2xl border transition-all duration-500",
+    className: "relative w-full overflow-hidden bg-white rounded-b-2xl rounded-tr-2xl rounded-tl-2xl shadow-2xl border transition-all duration-500",
     style: {
       paddingBottom: isTwoPagesTab5 ? '112.5%' : '56.25%'
     }
