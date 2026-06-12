@@ -677,6 +677,7 @@ function App() {
   const [pcFilterChain, setPcFilterChain] = useState('all');
   const [pcFilterPC, setPcFilterPC] = useState('all');
   const [pcFilterTier, setPcFilterTier] = useState('all');
+  const [pcListSort, setPcListSort] = useState({key:'sales',dir:'desc'});
   const [provYoySortKey, setProvYoySortKey] = useState('growth');
   const [provYoySortDir, setProvYoySortDir] = useState('desc');
   const [provMsSortKey, setProvMsSortKey] = useState('cyB');
@@ -1503,6 +1504,8 @@ function App() {
       yMarket: ym,
       lyMarket: lym,
       lyYMarket: lyYm,
+      lyS: sum(lyCur, 'Beger'),
+      lySalesGrowthPct: (() => { const ls = sum(lyCur, 'Beger'); return ls > 0 ? (s - ls) / ls * 100 : s > 0 ? 100 : 0; })(),
       lyYSales: sum(lyYtd, 'Beger'),
       ytdSalesGrowthPct: (() => { const lys = sum(lyYtd, 'Beger'); return lys > 0 ? (ys - lys) / lys * 100 : ys > 0 ? 100 : 0; })(),
       marketGrowthPct: lym > 0 ? (m - lym) / lym * 100 : m > 0 ? 100 : 0,
@@ -1511,6 +1514,8 @@ function App() {
       yAch: yt > 0 ? ys / yt * 100 : 0,
       ms: m > 0 ? s / m * 100 : 0,
       yMs: ym > 0 ? ys / ym * 100 : 0,
+      lyMs: lym > 0 ? sum(lyCur, 'Beger') / lym * 100 : 0,
+      lyYMs: lyYm > 0 ? sum(lyYtd, 'Beger') / lyYm * 100 : 0,
       avg: ys / (mIdx + 1),
       pcCount,
       modelPcCount
@@ -2639,7 +2644,7 @@ function App() {
       className: "grid grid-cols-4 gap-4 flex-shrink-0 min-h-[140px]"
     }, [{
       l: 'ยอดขายเทียบเป้าหมาย (เดือน)',
-      v: `฿${formatNum(metrics.sales)}`,
+      v: formatNum(metrics.sales),
       icon: /*#__PURE__*/React.createElement(Target, {
         className: "text-blue-400",
         size: 24
@@ -2649,21 +2654,35 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E22\u0E2D\u0E14 Target:"), /*#__PURE__*/React.createElement("span", null, formatNum(metrics.target))), /*#__PURE__*/React.createElement("div", {
-        className: "flex justify-between"
+        className: "flex justify-between items-center"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Act%:"), /*#__PURE__*/React.createElement("span", {
-        className: "text-amber-400"
-      }, formatPctStr(metrics.ach))), /*#__PURE__*/React.createElement("div", {
+        style: {display:'inline-flex',alignItems:'baseline',gap:'3px',background:'rgba(251,191,36,0.15)',border:'1.5px solid rgba(251,191,36,0.4)',borderRadius:'6px',padding:'2px 8px'}
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-amber-400 font-black text-[15px] leading-tight"
+      }, formatPctStr(metrics.ach)))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E1C\u0E25\u0E15\u0E48\u0E32\u0E07 (\u0E1A\u0E32\u0E17):"), /*#__PURE__*/React.createElement("span", {
         className: metrics.sales - metrics.target >= 0 ? 'text-emerald-400' : 'text-rose-400'
-      }, metrics.sales - metrics.target > 0 ? '+' : '', formatNum(metrics.sales - metrics.target))))
+      }, metrics.sales - metrics.target > 0 ? '+' : '', formatNum(metrics.sales - metrics.target))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27 (", selectedMonth, " ", (parseInt(selectedYear)-1).toString(), "):"), /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-300"
+      }, formatNum(metrics.lyS))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "Growth MoM YoY:"), /*#__PURE__*/React.createElement("span", {
+        className: metrics.lySalesGrowthPct >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+      }, metrics.lySalesGrowthPct >= 0 ? "\u25B2 +" : "\u25BC ", formatPctStr(metrics.lySalesGrowthPct))))
     }, {
       l: 'ยอดสะสม (YTD)',
-      v: `฿${formatNum(metrics.ySales)}`,
+      v: formatNum(metrics.ySales),
       icon: /*#__PURE__*/React.createElement(TrendingUp, {
         className: "text-indigo-400",
         size: 24
@@ -2673,18 +2692,32 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E40\u0E1B\u0E49\u0E32 YTD:"), /*#__PURE__*/React.createElement("span", null, formatNum(metrics.yTarget))), /*#__PURE__*/React.createElement("div", {
-        className: "flex justify-between"
+        className: "flex justify-between items-center"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Act% YTD:"), /*#__PURE__*/React.createElement("span", {
-        className: "text-amber-400"
-      }, formatPctStr(metrics.yAch))), /*#__PURE__*/React.createElement("div", {
+        style: {display:'inline-flex',alignItems:'baseline',gap:'3px',background:'rgba(251,191,36,0.15)',border:'1.5px solid rgba(251,191,36,0.4)',borderRadius:'6px',padding:'2px 8px'}
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-amber-400 font-black text-[15px] leading-tight"
+      }, formatPctStr(metrics.yAch)))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E1C\u0E25\u0E15\u0E48\u0E32\u0E07 YTD:"), /*#__PURE__*/React.createElement("span", {
         className: metrics.ySales - metrics.yTarget >= 0 ? 'text-emerald-400' : 'text-rose-400'
-      }, metrics.ySales - metrics.yTarget > 0 ? '+' : '', formatNum(metrics.ySales - metrics.yTarget))))
+      }, metrics.ySales - metrics.yTarget > 0 ? '+' : '', formatNum(metrics.ySales - metrics.yTarget))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27 YTD (", (parseInt(selectedYear)-1).toString(), "):"), /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-300"
+      }, formatNum(metrics.lyYSales))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "Growth YTD YoY:"), /*#__PURE__*/React.createElement("span", {
+        className: metrics.ytdSalesGrowthPct >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+      }, metrics.ytdSalesGrowthPct >= 0 ? "\u25B2 +" : "\u25BC ", formatPctStr(metrics.ytdSalesGrowthPct))))
     }, {
       l: 'Market Share (เดือน)',
       v: formatPctStr(metrics.ms),
@@ -2698,13 +2731,13 @@ function App() {
         className: "text-white/60"
       }, "\u0E15\u0E25\u0E32\u0E14\u0E23\u0E27\u0E21 (\u0E1B\u0E35\u0E19\u0E35\u0E49):"), /*#__PURE__*/React.createElement("span", {
         className: "text-emerald-300 font-bold"
-      }, "\u0E3F", formatNum(metrics.market))), /*#__PURE__*/React.createElement("div", {
+      }, formatNum(metrics.market))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E15\u0E25\u0E32\u0E14\u0E23\u0E27\u0E21 (\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27):"), /*#__PURE__*/React.createElement("span", {
         className: "text-slate-300"
-      }, "\u0E3F", formatNum(metrics.lyMarket))), /*#__PURE__*/React.createElement("div", {
+      }, formatNum(metrics.lyMarket))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between items-center"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
@@ -2712,7 +2745,19 @@ function App() {
         className: metrics.marketGrowthPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
       }, "(", metrics.marketGrowthPct > 0 ? '+' : '', formatPctStr(metrics.marketGrowthPct), ")"), ":"), /*#__PURE__*/React.createElement("span", {
         className: metrics.market - metrics.lyMarket >= 0 ? 'text-emerald-400' : 'text-rose-400'
-      }, metrics.market - metrics.lyMarket > 0 ? '+' : '', formatNum(metrics.market - metrics.lyMarket))))
+      }, metrics.market - metrics.lyMarket > 0 ? '+' : '', formatNum(metrics.market - metrics.lyMarket))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "MS% \u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27 (", (parseInt(selectedYear)-1).toString(), "):"), /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-300"
+      }, formatPctStr(metrics.lyMs))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "Growth MS%:"), /*#__PURE__*/React.createElement("span", {
+        className: metrics.ms - metrics.lyMs >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+      }, metrics.ms - metrics.lyMs >= 0 ? "\u25B2 +" : "\u25BC ", Math.abs(metrics.ms - metrics.lyMs).toFixed(1), "pp")))
     }, {
       l: 'Market Share สะสม (YTD)',
       v: formatPctStr(metrics.yMs),
@@ -2726,13 +2771,13 @@ function App() {
         className: "text-white/60"
       }, "\u0E15\u0E25\u0E32\u0E14\u0E2A\u0E30\u0E2A\u0E21 (\u0E1B\u0E35\u0E19\u0E35\u0E49):"), /*#__PURE__*/React.createElement("span", {
         className: "text-emerald-300 font-bold"
-      }, "\u0E3F", formatNum(metrics.yMarket))), /*#__PURE__*/React.createElement("div", {
+      }, formatNum(metrics.yMarket))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E15\u0E25\u0E32\u0E14\u0E2A\u0E30\u0E2A\u0E21 (\u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27):"), /*#__PURE__*/React.createElement("span", {
         className: "text-slate-300"
-      }, "\u0E3F", formatNum(metrics.lyYMarket))), /*#__PURE__*/React.createElement("div", {
+      }, formatNum(metrics.lyYMarket))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between items-center"
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
@@ -2740,7 +2785,19 @@ function App() {
         className: metrics.marketGrowthPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
       }, "(", metrics.yMarketGrowthPct > 0 ? '+' : '', formatPctStr(metrics.yMarketGrowthPct), ")"), ":"), /*#__PURE__*/React.createElement("span", {
         className: metrics.yMarket - metrics.lyYMarket >= 0 ? 'text-emerald-400' : 'text-rose-400'
-      }, metrics.yMarket - metrics.lyYMarket > 0 ? '+' : '', formatNum(metrics.yMarket - metrics.lyYMarket))))
+      }, metrics.yMarket - metrics.lyYMarket > 0 ? '+' : '', formatNum(metrics.yMarket - metrics.lyYMarket))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "MS% \u0E1B\u0E35\u0E17\u0E35\u0E48\u0E41\u0E25\u0E49\u0E27 YTD (", (parseInt(selectedYear)-1).toString(), "):"), /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-300"
+      }, formatPctStr(metrics.lyYMs))), /*#__PURE__*/React.createElement("div", {
+        className: "flex justify-between"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-white/60"
+      }, "Growth MS% YTD:"), /*#__PURE__*/React.createElement("span", {
+        className: metrics.yMs - metrics.lyYMs >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+      }, metrics.yMs - metrics.lyYMs >= 0 ? "\u25B2 +" : "\u25BC ", Math.abs(metrics.yMs - metrics.lyYMs).toFixed(1), "pp")))
     }].map((c, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
       className: "bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex flex-col justify-between hover:bg-white/15 transition-all shadow-xl h-full"
@@ -2817,11 +2874,11 @@ function App() {
       y2: "1"
     }, /*#__PURE__*/React.createElement("stop", {
       offset: "5%",
-      stopColor: "#0ea5e9",
+      stopColor: "#f97316",
       stopOpacity: 0.15
     }), /*#__PURE__*/React.createElement("stop", {
       offset: "95%",
-      stopColor: "#0ea5e9",
+      stopColor: "#f97316",
       stopOpacity: 0
     }))), /*#__PURE__*/React.createElement(CartesianGrid, {
       strokeDasharray: "3 3",
@@ -2870,7 +2927,7 @@ function App() {
       type: "monotone",
       dataKey: "t",
       name: "\u0E40\u0E1B\u0E49\u0E32\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22\u0E1B\u0E35\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19",
-      stroke: "#0ea5e9",
+      stroke: "#f97316",
       strokeWidth: 1.5,
       strokeOpacity: 0.45,
       fillOpacity: 0.35,
@@ -4608,11 +4665,16 @@ function App() {
       const filterPC=pcFilterPC,       setFilterPC=setPcFilterPC;
       const filterTier=pcFilterTier,   setFilterTier=setPcFilterTier;
       const chainList=[...new Set(allBranches.map(b=>b.mall).filter(Boolean))].sort();
+      const pcSortVal=(b)=>{
+        if(pcListSort.key==='perPC') return (b.hasPC&&b.actualPC>0)?b.sales/b.actualPC:-1;
+        if(pcListSort.key==='ach') return b.ach||0;
+        return b.sales||0;
+      };
       const filtered=allBranches.filter(b=>
         (filterChain==='all'||b.mall===filterChain)&&
         (filterPC==='all'||(filterPC==='has'?b.hasPC:!b.hasPC))&&
         (filterTier==='all'||b.tier===filterTier)
-      ).sort((a,b)=>b.sales-a.sales);
+      ).sort((a,b)=>pcListSort.dir==='desc'?pcSortVal(b)-pcSortVal(a):pcSortVal(a)-pcSortVal(b));
 
       const tierBadge=t=>/*#__PURE__*/React.createElement("span",{style:{display:'inline-block',padding:'1px 6px',borderRadius:3,fontSize:12,fontWeight:700,
         background:t==='low'?'rgba(239,68,68,.15)':t==='mid'?'rgba(249,115,22,.15)':'rgba(16,185,129,.15)',
@@ -4935,14 +4997,14 @@ function App() {
             )
           ),
           /*#__PURE__*/React.createElement("div",{style:{display:'flex',justifyContent:'flex-start',flexShrink:0}},
-            /*#__PURE__*/React.createElement("div",{style:{fontSize:12,color:'#64748b'}},"เรียงตามยอดขาย (มาก → น้อย)")
+            /*#__PURE__*/React.createElement("div",{style:{fontSize:12,color:'#64748b'}},"เรียงตาม" + (pcListSort.key==='perPC'?'ยอด/หัว PC':pcListSort.key==='ach'?'Ach%':'ยอดขาย') + (pcListSort.dir==='desc'?' (มาก → น้อย)':' (น้อย → มาก)') + " — คลิกหัวคอลัมน์เพื่อเรียงลำดับ")
           ),
           /*#__PURE__*/React.createElement("div",{style:{flex:1,overflow:'auto',minHeight:0}},
             /*#__PURE__*/React.createElement("table",{style:{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}},
               /*#__PURE__*/React.createElement("thead",null,
                 /*#__PURE__*/React.createElement("tr",{style:{background:'#0f2440',position:'sticky',top:0,zIndex:1}},
-                  [{h:'ชื่อสาขา',a:'left',hl:false,w:'33%'},{h:'ห้าง',a:'left',hl:false,w:'11%'},{h:'PC',a:'center',hl:false,w:'8%'},{h:'Model / Act.',a:'center',hl:true,w:'10%'},{h:'ยอด/หัว PC (บาท)',a:'right',hl:true,w:'13%'},{h:'ยอดขาย (บาท)',a:'right',hl:false,w:'14%'},{h:'Ach%',a:'right',hl:false,w:'11%'}
-                  ].map((col,i)=>/*#__PURE__*/React.createElement("th",{key:i,style:{fontSize:12,fontWeight:700,color:col.hl?'#fbbf24':'#64748b',textAlign:col.a,padding:'5px 8px',borderBottom:'1px solid rgba(255,255,255,.07)',whiteSpace:'nowrap',width:col.w,background:col.hl?'rgba(251,191,36,.06)':undefined,borderLeft:col.hl?'2px solid rgba(251,191,36,.35)':undefined,borderRight:col.hl?'2px solid rgba(251,191,36,.35)':undefined}},col.h))
+                  [{h:'ชื่อสาขา',a:'left',hl:false,w:'33%'},{h:'ห้าง',a:'left',hl:false,w:'11%'},{h:'PC',a:'center',hl:false,w:'8%'},{h:'Model / Act.',a:'center',hl:true,w:'10%'},{h:'ยอด/หัว PC (บาท)',a:'right',hl:true,w:'13%',sk:'perPC'},{h:'ยอดขาย (บาท)',a:'right',hl:false,w:'14%',sk:'sales'},{h:'Ach%',a:'right',hl:false,w:'11%',sk:'ach'}
+                  ].map((col,i)=>/*#__PURE__*/React.createElement("th",{key:i,onClick:col.sk?()=>setPcListSort(s=>({key:col.sk,dir:s.key===col.sk&&s.dir==='desc'?'asc':'desc'})):undefined,style:{fontSize:12,fontWeight:700,color:pcListSort.key===col.sk?'#60a5fa':(col.hl?'#fbbf24':'#64748b'),textAlign:col.a,padding:col.h==='Ach%'?'5px 24px 5px 8px':'5px 8px',borderBottom:'1px solid rgba(255,255,255,.07)',whiteSpace:'nowrap',width:col.w,background:col.hl?'rgba(251,191,36,.06)':undefined,borderLeft:col.hl?'2px solid rgba(251,191,36,.35)':undefined,borderRight:col.hl?'2px solid rgba(251,191,36,.35)':undefined,cursor:col.sk?'pointer':'default',userSelect:'none'}},col.h,col.sk?(pcListSort.key===col.sk?(pcListSort.dir==='desc'?' \u25BC':' \u25B2'):' \u21C5'):''))
                 )
               ),
               /*#__PURE__*/React.createElement("tbody",null,
@@ -4955,7 +5017,7 @@ function App() {
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',textAlign:'center',background:'rgba(251,191,36,.04)',borderLeft:'2px solid rgba(251,191,36,.25)',borderRight:'1px solid rgba(251,191,36,.12)'}},b.hasPC&&b.actualPC>0?/*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:2}},/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,color:'#94a3b8'}},b.modelPC>0?b.modelPC:'–'),/*#__PURE__*/React.createElement("span",{style:{fontSize:11,color:'rgba(255,255,255,0.25)',margin:'0 1px'}},'/'),/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,color:b.actualPC<b.modelPC?'#f87171':'#60a5fa'}},b.actualPC)):/*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:'#475569'}},'—')),
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',textAlign:'right',background:'rgba(251,191,36,.04)',borderLeft:'1px solid rgba(251,191,36,.12)',borderRight:'2px solid rgba(251,191,36,.25)'}},b.hasPC&&b.actualPC>0?/*#__PURE__*/React.createElement("span",{style:{fontSize:13,fontWeight:800,fontFamily:'monospace',color:achColor(b.ach)}},fmtN(b.sales/b.actualPC)):/*#__PURE__*/React.createElement("span",{style:{fontSize:12,color:'#475569'}},'—')),
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:700,color:'#e2e8f0',textAlign:'right',fontFamily:'monospace'}},fmtN(b.sales)),
-                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:800,color:achColor(b.ach),textAlign:'right'}},b.ach>0?b.ach.toFixed(0)+'%':'–')
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 24px 5px 8px',fontSize:13,fontWeight:800,color:achColor(b.ach),textAlign:'right'}},b.ach>0?b.ach.toFixed(0)+'%':'–')
                     ))
               )
             )
