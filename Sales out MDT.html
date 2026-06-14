@@ -2678,7 +2678,7 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Growth MoM YoY:"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.lySalesGrowthPct >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+        className: metrics.lySalesGrowthPct >= 0 ? 'font-black px-1.5 py-0.5 rounded bg-emerald-500/40 text-white text-xs' : 'font-black px-1.5 py-0.5 rounded bg-rose-500/40 text-white text-xs'
       }, metrics.lySalesGrowthPct >= 0 ? "\u25B2 +" : "\u25BC ", formatPctStr(metrics.lySalesGrowthPct))))
     }, {
       l: 'ยอดสะสม (YTD)',
@@ -2704,7 +2704,7 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "\u0E1C\u0E25\u0E15\u0E48\u0E32\u0E07 YTD:"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.ySales - metrics.yTarget >= 0 ? 'text-emerald-400' : 'text-rose-400'
+        className: metrics.ySales - metrics.yTarget >= 0 ? 'text-emerald-200' : 'text-rose-300'
       }, metrics.ySales - metrics.yTarget > 0 ? '+' : '', formatNum(metrics.ySales - metrics.yTarget))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between pt-1.5 mt-1 border-t border-white/10"
       }, /*#__PURE__*/React.createElement("span", {
@@ -2716,13 +2716,13 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Growth YTD YoY:"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.ytdSalesGrowthPct >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+        className: metrics.ytdSalesGrowthPct >= 0 ? 'font-black px-1.5 py-0.5 rounded bg-emerald-500/40 text-white text-xs' : 'font-black px-1.5 py-0.5 rounded bg-rose-500/40 text-white text-xs'
       }, metrics.ytdSalesGrowthPct >= 0 ? "\u25B2 +" : "\u25BC ", formatPctStr(metrics.ytdSalesGrowthPct))))
     }, {
       l: 'Market Share (เดือน)',
       v: formatPctStr(metrics.ms),
       icon: /*#__PURE__*/React.createElement(PieChart, {
-        className: "text-emerald-400",
+        className: "text-emerald-200",
         size: 24
       }),
       d: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -2742,9 +2742,9 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Growth \u0E15\u0E25\u0E32\u0E14 ", /*#__PURE__*/React.createElement("span", {
-        className: metrics.marketGrowthPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+        className: metrics.marketGrowthPct >= 0 ? 'text-emerald-200' : 'text-rose-300'
       }, "(", metrics.marketGrowthPct > 0 ? '+' : '', formatPctStr(metrics.marketGrowthPct), ")"), ":"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.market - metrics.lyMarket >= 0 ? 'text-emerald-400' : 'text-rose-400'
+        className: metrics.market - metrics.lyMarket >= 0 ? 'text-emerald-200' : 'text-rose-300'
       }, metrics.market - metrics.lyMarket > 0 ? '+' : '', formatNum(metrics.market - metrics.lyMarket))), /*#__PURE__*/React.createElement("div", {
         className: "flex justify-between"
       }, /*#__PURE__*/React.createElement("span", {
@@ -2756,7 +2756,7 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Growth MS%:"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.ms - metrics.lyMs >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+        className: metrics.ms - metrics.lyMs >= 0 ? 'font-black px-1.5 py-0.5 rounded bg-emerald-500/40 text-white text-xs' : 'font-black px-1.5 py-0.5 rounded bg-rose-500/40 text-white text-xs'
       }, metrics.ms - metrics.lyMs >= 0 ? "\u25B2 +" : "\u25BC ", Math.abs(metrics.ms - metrics.lyMs).toFixed(1), "pp")))
     }, {
       l: 'Market Share สะสม (YTD)',
@@ -2796,7 +2796,7 @@ function App() {
       }, /*#__PURE__*/React.createElement("span", {
         className: "text-white/60"
       }, "Growth MS% YTD:"), /*#__PURE__*/React.createElement("span", {
-        className: metrics.yMs - metrics.lyYMs >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'
+        className: metrics.yMs - metrics.lyYMs >= 0 ? 'font-black px-1.5 py-0.5 rounded bg-emerald-500/40 text-white text-xs' : 'font-black px-1.5 py-0.5 rounded bg-rose-500/40 text-white text-xs'
       }, metrics.yMs - metrics.lyYMs >= 0 ? "\u25B2 +" : "\u25BC ", Math.abs(metrics.yMs - metrics.lyYMs).toFixed(1), "pp")))
     }].map((c, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
@@ -2863,7 +2863,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("stop", {
       offset: "5%",
       stopColor: "#005AAB",
-      stopOpacity: 0.15
+      stopOpacity: 0.05
     }), /*#__PURE__*/React.createElement("stop", {
       offset: "95%",
       stopColor: "#005AAB",
@@ -2876,7 +2876,7 @@ function App() {
     }, /*#__PURE__*/React.createElement("stop", {
       offset: "5%",
       stopColor: "#f97316",
-      stopOpacity: 0.15
+      stopOpacity: 0.05
     }), /*#__PURE__*/React.createElement("stop", {
       offset: "95%",
       stopColor: "#f97316",
@@ -2931,7 +2931,7 @@ function App() {
       stroke: "#f97316",
       strokeWidth: 1.5,
       strokeOpacity: 0.45,
-      fillOpacity: 0.35,
+      fillOpacity: 0.08,
       fill: "url(#colorTarget)",
       dot: false
     }), /*#__PURE__*/React.createElement(Area, {
