@@ -2835,7 +2835,7 @@ function App() {
       className: "text-slate-400 text-[9px] font-black uppercase tracking-wider"
     }, "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22/\u0E40\u0E14\u0E37\u0E2D\u0E19 (YTD)"), /*#__PURE__*/React.createElement("span", {
       className: "text-[#005AAB] font-black text-sm leading-tight"
-    }, "\u0E3F", formatNum(metrics.avg))), /*#__PURE__*/React.createElement("div", {
+    }, formatNum(metrics.avg))), /*#__PURE__*/React.createElement("div", {
       className: "h-6 w-px bg-slate-300"
     }), /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col items-end"
@@ -2971,38 +2971,43 @@ function App() {
     }, /*#__PURE__*/React.createElement("div", {
       className: "overflow-auto custom-scrollbar h-full w-full absolute inset-0"
     }, /*#__PURE__*/React.createElement("table", {
-      className: "w-full border-collapse text-[13px] table-fixed min-w-[1200px]"
+      className: "w-full border-collapse text-[12px] table-fixed"
     }, /*#__PURE__*/React.createElement("thead", {
-      className: "bg-[#1e293b] text-white sticky top-0 z-20 shadow-md"
-    }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center border-r border-slate-600 w-[4%] font-bold"
-    }, "\u0E25\u0E33\u0E14\u0E31\u0E1A"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-left border-r border-slate-600 w-[11%] font-bold pl-5"
-    }, "\u0E2B\u0E49\u0E32\u0E07"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-left border-r border-slate-600 w-[11%] font-bold pl-5"
-    }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2A\u0E32\u0E02\u0E32"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center border-r border-slate-600 w-[5%] font-bold leading-tight"
-    }, "\u0E08\u0E33\u0E19\u0E27\u0E19", /*#__PURE__*/React.createElement("br", null), "\u0E2A\u0E32\u0E02\u0E32"), /*#__PURE__*/React.createElement("th", {
-      className: "p-2 text-center border-r border-slate-600 w-[7%] font-bold leading-tight"
-    }, "\u0E08\u0E33\u0E19\u0E27\u0E19 PC", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
-      className: "text-[9px] text-slate-400 font-normal"
-    }, "Model/Actual")), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-right border-r border-slate-600 w-[9%] font-bold pr-5"
-    }, "Actual (\u0E40\u0E14\u0E37\u0E2D\u0E19)"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-right border-r border-slate-600 w-[9%] font-bold pr-5"
-    }, "Target \u0E40\u0E14\u0E37\u0E2D\u0E19"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center border-r border-slate-600 w-[6%] font-bold"
-    }, "Ach%"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center border-r border-slate-600 w-[6%] font-bold text-blue-300"
-    }, "Growth \u0E40\u0E14\u0E37\u0E2D\u0E19", /*#__PURE__*/React.createElement("br", null), "(Vs LY)"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-right border-r border-slate-600 w-[9%] font-bold pr-5"
-    }, "Actual \u0E2A\u0E30\u0E2A\u0E21"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-right border-r border-slate-600 w-[9%] font-bold pr-5"
-    }, "Target \u0E2A\u0E30\u0E2A\u0E21"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center border-r border-slate-600 w-[6%] font-bold"
-    }, "Ach%"), /*#__PURE__*/React.createElement("th", {
-      className: "p-3 text-center w-[8%] font-bold text-blue-300"
-    }, "Growth \u0E2A\u0E30\u0E2A\u0E21", /*#__PURE__*/React.createElement("br", null), "(Vs LY)"))), /*#__PURE__*/React.createElement("tbody", {
+      className: "text-white sticky top-0 z-20 shadow-md"
+    },
+    /* ── Row 1: Group labels ── */
+    /*#__PURE__*/React.createElement("tr", {className: "bg-[#0f172a]"},
+      /*#__PURE__*/React.createElement("th", {rowSpan: 2, className: "p-3 text-center border-r border-slate-700 w-[4%] font-bold bg-[#0f172a]"}, "\u0E25\u0E33\u0E14\u0E31\u0E1A"),
+      /*#__PURE__*/React.createElement("th", {rowSpan: 2, className: "p-3 text-left border-r border-slate-700 w-[10%] font-bold pl-4 bg-[#0f172a]"}, "\u0E2B\u0E49\u0E32\u0E07"),
+      /*#__PURE__*/React.createElement("th", {rowSpan: 2, className: "p-3 text-left border-r border-slate-700 w-[10%] font-bold pl-4 bg-[#0f172a]"}, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2A\u0E32\u0E02\u0E32"),
+      /*#__PURE__*/React.createElement("th", {rowSpan: 2, className: "p-3 text-center border-r border-slate-700 w-[4%] font-bold leading-tight bg-[#0f172a]"}, "\u0E2A\u0E32\u0E02\u0E32"),
+      /*#__PURE__*/React.createElement("th", {rowSpan: 2, className: "p-2 text-center border-r border-slate-700 w-[6%] font-bold leading-tight bg-[#0f172a]"},
+        "PC", /*#__PURE__*/React.createElement("br", null),
+        /*#__PURE__*/React.createElement("span", {className: "text-[9px] text-slate-400 font-normal"}, "Model/Act.")
+      ),
+      /* Monthly group band */
+      /*#__PURE__*/React.createElement("th", {colSpan: 4, className: "py-1.5 text-center text-xs font-bold text-white border-b border-slate-600", style:{background:'#1e293b',borderLeft:'2px solid rgba(255,255,255,0.3)',borderRight:'2px solid rgba(255,255,255,0.3)'}},
+        "\u25cf\u00a0\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E23\u0E32\u0E22\u0E40\u0E14\u0E37\u0E2D\u0E19"
+      ),
+      /* Cumulative group band — same blue as Monthly */
+      /*#__PURE__*/React.createElement("th", {colSpan: 4, className: "py-1.5 text-center text-xs font-bold text-white border-b border-slate-600", style:{background:'#1e293b',borderLeft:'2px solid rgba(255,255,255,0.3)',borderRight:'2px solid rgba(255,255,255,0.3)'}},
+        "\u25cf\u00a0\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21 YTD"
+      )
+    ),
+    /* ── Row 2: Sub-column labels ── */
+    /*#__PURE__*/React.createElement("tr", {className: "bg-[#1e293b] text-[11px]"},
+      /* Monthly sub-cols */
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-right border-r border-slate-700 font-semibold text-white", style:{borderLeft:'2px solid rgba(255,255,255,0.3)',background:'#1e293b'}}, "Actual"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-right border-r border-slate-700 font-semibold text-white", style:{background:'#1e293b'}}, "Target"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-center border-r border-slate-700 font-semibold text-white", style:{background:'#1e293b'}}, "Ach%"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-center font-semibold text-white", style:{background:'#1e293b',borderRight:'2px solid rgba(255,255,255,0.3)'}}, "Growth\u00a0(LY)"),
+      /* Cumulative sub-cols — same style as Monthly */
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-right border-r border-slate-700 font-semibold text-white", style:{borderLeft:'2px solid rgba(255,255,255,0.3)',background:'#1e293b'}}, "Actual"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-right border-r border-slate-700 font-semibold text-white", style:{background:'#1e293b'}}, "Target"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-center border-r border-slate-700 font-semibold text-white", style:{background:'#1e293b'}}, "Ach%"),
+      /*#__PURE__*/React.createElement("th", {className: "px-2 py-2 text-center font-semibold text-white", style:{background:'#1e293b',borderRight:'2px solid rgba(255,255,255,0.3)'}}, "Growth\u00a0(LY)")
+    )
+    ), /*#__PURE__*/React.createElement("tbody", {
       className: "divide-y divide-slate-300/50"
     }, lflData.map((row, idx) => {
       const lflAchM = row.lfl.mTar > 0 ? row.lfl.mAct / row.lfl.mTar * 100 : 0;
@@ -3023,31 +3028,43 @@ function App() {
         rowSpan: 3,
         className: "p-3 border-r border-b border-slate-300 text-left font-black text-[#003876] text-sm pl-5 align-middle bg-white"
       }, row.mall), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-left pl-5 font-bold text-slate-400"
+        className: "p-3 border-r border-slate-200 text-left pl-4 font-bold text-slate-400"
       }, "LFL \u0E2A\u0E32\u0E02\u0E32\u0E40\u0E14\u0E34\u0E21"), /*#__PURE__*/React.createElement("td", {
         className: "p-3 border-r border-slate-200 text-center font-black text-slate-800"
       }, row.lfl.numBranches), /*#__PURE__*/React.createElement("td", {
         className: "p-1 border-r border-slate-200 text-center align-middle bg-white"
-      }, getPcCell(row.lfl.modelPc, row.lfl.actualPc)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-blue-600"
-      }, "\u0E3F", formatNum(row.lfl.mAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-slate-400"
-      }, "\u0E3F", formatNum(row.lfl.mTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(lflAchM)}`
+      }, getPcCell(row.lfl.modelPc, row.lfl.actualPc)),
+      /* ── Monthly columns (blue band) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 font-bold text-blue-700",
+        style:{borderLeft:'3px solid #bae6fd',background:'#f0f9ff'}
+      }, formatNum(row.lfl.mAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 text-slate-400",
+        style:{background:'#f0f9ff'}
+      }, formatNum(row.lfl.mTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(lflAchM)}`,
+        style:{background:'#f0f9ff'}
       }, lflAchM > 0 ? `${lflAchM.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-center bg-blue-50/30"
+        className: "p-3 text-center font-bold",
+        style:{background:'#e0f2fe',borderRight:'3px solid #bae6fd'}
       }, /*#__PURE__*/React.createElement(ColorNum, {
         val: row.lfl.mGrw,
         formatFn: formatPctStr,
         showPlus: true
-      })), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-[#005AAB]"
-      }, "\u0E3F", formatNum(row.lfl.yAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-slate-400"
-      }, "\u0E3F", formatNum(row.lfl.yTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(lflAchY)}`
+      })),
+      /* ── Cumulative columns (same blue as Monthly) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 font-bold text-blue-700",
+        style:{borderLeft:'3px solid #bae6fd',background:'#f0f9ff'}
+      }, formatNum(row.lfl.yAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 text-slate-400",
+        style:{background:'#f0f9ff'}
+      }, formatNum(row.lfl.yTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(lflAchY)}`,
+        style:{background:'#f0f9ff'}
       }, lflAchY > 0 ? `${lflAchY.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 text-center bg-blue-50/30"
+        className: "p-3 text-center font-bold",
+        style:{background:'#e0f2fe',borderRight:'3px solid #bae6fd'}
       }, /*#__PURE__*/React.createElement(ColorNum, {
         val: row.lfl.yGrw,
         formatFn: formatPctStr,
@@ -3089,22 +3106,34 @@ function App() {
         className: "p-3 border-r border-slate-200 text-center font-black text-slate-800"
       }, row.new.numBranches), /*#__PURE__*/React.createElement("td", {
         className: "p-1 border-r border-slate-200 text-center align-middle bg-white"
-      }, getPcCell(row.new.modelPc, row.new.actualPc)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-blue-600"
-      }, "\u0E3F", formatNum(row.new.mAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-slate-400"
-      }, "\u0E3F", formatNum(row.new.mTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(newAchM)}`
+      }, getPcCell(row.new.modelPc, row.new.actualPc)),
+      /* ── Monthly columns (blue band) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 font-bold text-blue-700",
+        style:{borderLeft:'3px solid #bae6fd',background:'#f0f9ff'}
+      }, formatNum(row.new.mAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 text-slate-400",
+        style:{background:'#f0f9ff'}
+      }, formatNum(row.new.mTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(newAchM)}`,
+        style:{background:'#f0f9ff'}
       }, newAchM > 0 ? `${newAchM.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-center text-slate-300 font-black"
-      }, "-"), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-[#005AAB]"
-      }, "\u0E3F", formatNum(row.new.yAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-slate-200 text-right pr-5 font-bold text-slate-400"
-      }, "\u0E3F", formatNum(row.new.yTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(newAchY)}`
+        className: "p-3 text-center text-slate-300 font-black",
+        style:{background:'#e0f2fe',borderRight:'3px solid #bae6fd'}
+      }, "-"),
+      /* ── Cumulative columns (same blue as Monthly) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 font-bold text-blue-700",
+        style:{borderLeft:'3px solid #bae6fd',background:'#f0f9ff'}
+      }, formatNum(row.new.yAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-slate-200 text-right pr-4 text-slate-400",
+        style:{background:'#f0f9ff'}
+      }, formatNum(row.new.yTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-slate-200 text-center font-black ${getCol(newAchY)}`,
+        style:{background:'#f0f9ff'}
       }, newAchY > 0 ? `${newAchY.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 text-center text-slate-300 font-black"
+        className: "p-3 text-center text-slate-300 font-black",
+        style:{background:'#e0f2fe',borderRight:'3px solid #bae6fd'}
       }, "-")), /*#__PURE__*/React.createElement("tr", {
         className: "bg-[#dbeafe] border-b-[3px] border-[#bfdbfe] hover:bg-[#bfdbfe] transition-colors"
       }, /*#__PURE__*/React.createElement("td", {
@@ -3113,26 +3142,38 @@ function App() {
         className: "p-3 border-r border-[#bfdbfe] text-center font-black text-[#003876]"
       }, row.total.numBranches), /*#__PURE__*/React.createElement("td", {
         className: "p-1 border-r border-[#bfdbfe] text-center align-middle"
-      }, getPcCell(row.total.modelPc, row.total.actualPc)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-[#bfdbfe] text-right pr-5 font-black text-[#003876]"
-      }, "\u0E3F", formatNum(row.total.mAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-[#bfdbfe] text-right pr-5 font-bold text-slate-500"
-      }, "\u0E3F", formatNum(row.total.mTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-[#bfdbfe] text-center font-black ${getCol(totAchM)}`
+      }, getPcCell(row.total.modelPc, row.total.actualPc)),
+      /* ── Monthly columns (blue band, darker for Total) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-blue-200 text-right pr-4 font-black text-[#003876]",
+        style:{borderLeft:'3px solid #93c5fd',background:'#dbeafe'}
+      }, formatNum(row.total.mAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-blue-200 text-right pr-4 font-bold text-slate-500",
+        style:{background:'#dbeafe'}
+      }, formatNum(row.total.mTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-blue-200 text-center font-black ${getCol(totAchM)}`,
+        style:{background:'#dbeafe'}
       }, totAchM > 0 ? `${totAchM.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-[#bfdbfe] text-center"
+        className: "p-3 text-center",
+        style:{background:'#bfdbfe',borderRight:'3px solid #93c5fd'}
       }, /*#__PURE__*/React.createElement(ColorNum, {
         val: row.total.mGrw,
         formatFn: formatPctStr,
         showPlus: true
-      })), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-[#bfdbfe] text-right pr-5 font-black text-[#003876]"
-      }, "\u0E3F", formatNum(row.total.yAct)), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 border-r border-[#bfdbfe] text-right pr-5 font-bold text-slate-500"
-      }, "\u0E3F", formatNum(row.total.yTar)), /*#__PURE__*/React.createElement("td", {
-        className: `p-3 border-r border-[#bfdbfe] text-center font-black ${getCol(totAchY)}`
+      })),
+      /* ── Cumulative columns (same blue as Monthly, Total) ── */
+      /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-blue-200 text-right pr-4 font-black text-[#003876]",
+        style:{borderLeft:'3px solid #93c5fd',background:'#dbeafe'}
+      }, formatNum(row.total.yAct)), /*#__PURE__*/React.createElement("td", {
+        className: "p-3 border-r border-blue-200 text-right pr-4 font-bold text-slate-500",
+        style:{background:'#dbeafe'}
+      }, formatNum(row.total.yTar)), /*#__PURE__*/React.createElement("td", {
+        className: `p-3 border-r border-blue-200 text-center font-black ${getCol(totAchY)}`,
+        style:{background:'#dbeafe'}
       }, totAchY > 0 ? `${totAchY.toFixed(1)}%` : '0%'), /*#__PURE__*/React.createElement("td", {
-        className: "p-3 text-center"
+        className: "p-3 text-center",
+        style:{background:'#bfdbfe',borderRight:'3px solid #93c5fd'}
       }, /*#__PURE__*/React.createElement(ColorNum, {
         val: row.total.yGrw,
         formatFn: formatPctStr,
@@ -3341,7 +3382,7 @@ function App() {
                   }, "+", br.name))
                 )
               ),
-              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-[#005AAB] text-right whitespace-nowrap", style:{fontSize:"8px"}}, "\u0E3F", formatNum(b.sales))
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-[#005AAB] text-right whitespace-nowrap", style:{fontSize:"8px"}}, formatNum(b.sales))
             )
           ))
         )
@@ -3382,7 +3423,7 @@ function App() {
                   }, "-", br.name))
                 )
               ),
-              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-slate-400 line-through text-right whitespace-nowrap", style:{fontSize:"8px"}}, "\u0E3F", formatNum(b.salesPrev))
+              /*#__PURE__*/React.createElement("td", {className:"p-1 pr-1.5 font-black text-slate-400 line-through text-right whitespace-nowrap", style:{fontSize:"8px"}}, formatNum(b.salesPrev))
             )
           ))
         )
@@ -5847,7 +5888,7 @@ function App() {
                 });
                 return sorted.map((br, idx) => /*#__PURE__*/React.createElement("tr", { key: idx, className: "hover:bg-blue-50" },
                   /*#__PURE__*/React.createElement("td", { className: "p-2 font-bold text-slate-800" }, br.name),
-                  /*#__PURE__*/React.createElement("td", { className: "p-2 text-right font-bold text-[#003876]" }, "\u0E3F", formatNum(br.cyB)),
+                  /*#__PURE__*/React.createElement("td", { className: "p-2 text-right font-bold text-[#003876]" }, formatNum(br.cyB)),
                   /*#__PURE__*/React.createElement("td", { className: "p-2 text-right text-slate-500" }, br.lyB > 0 ? "\u0E3F" + formatNum(br.lyB) : "\u2013"),
                   /*#__PURE__*/React.createElement("td", { className: "p-2 text-center" },
                     br.growth != null
