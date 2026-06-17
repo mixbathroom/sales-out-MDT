@@ -673,6 +673,7 @@ function App() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [openLflDropdown, setOpenLflDropdown] = useState(null); // mall name or null
   const [pcSubTab, setPcSubTab] = useState('summary');
+  const [provBranchView, setProvBranchView] = useState('scroll'); // 'scroll' | 'full'
   const [supSubTab, setSupSubTab] = React.useState('summary');
   const [supSort, setSupSort] = React.useState({key:'may_s',dir:'desc'});
   const [pcFilterChain, setPcFilterChain] = useState('all');
@@ -5977,7 +5978,12 @@ function App() {
       ),
       /*#__PURE__*/React.createElement("div", { className: "bg-white/95 rounded-xl p-3 border border-white/20 shadow-lg flex-shrink-0" },
         /*#__PURE__*/React.createElement("div", { className: "text-[#003876] font-black text-sm mb-2 flex items-center gap-2" }, "\uD83C\uDFEA \u0E2A\u0E32\u0E02\u0E32\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14\u0E43\u0E19\u0E08\u0E31\u0E07\u0E2B\u0E27\u0E31\u0E14 ", provinceDetailData.prov.name, " (", provinceDetailData.branchList.length, " \u0E2A\u0E32\u0E02\u0E32)"),
-        /*#__PURE__*/React.createElement("div", { className: "overflow-auto border rounded-lg bg-white max-h-[260px] custom-scrollbar" },
+        /*#__PURE__*/React.createElement("div", { className: "flex items-center justify-end gap-1 mb-2 -mt-1" },
+          /*#__PURE__*/React.createElement("span", { className: "text-[10px] font-bold text-slate-500 mr-1" }, "\u0E21\u0E38\u0E21\u0E21\u0E2D\u0E07:"),
+          /*#__PURE__*/React.createElement("button", { onClick: function(){ setProvBranchView('scroll'); }, className: "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all " + (provBranchView==='scroll' ? "bg-[#003876] text-white shadow" : "bg-slate-100 text-slate-500 hover:bg-slate-200") }, "\u25A4"),
+          /*#__PURE__*/React.createElement("button", { onClick: function(){ setProvBranchView('full'); }, className: "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all " + (provBranchView==='full' ? "bg-[#003876] text-white shadow" : "bg-slate-100 text-slate-500 hover:bg-slate-200") }, "\u25A0 Full")
+        ),
+        /*#__PURE__*/React.createElement("div", { className: (provBranchView==='full' ? "overflow-visible border rounded-lg bg-white" : "overflow-auto border rounded-lg bg-white max-h-[260px] custom-scrollbar") },
           /*#__PURE__*/React.createElement("table", { className: "w-full border-collapse text-[10px]" },
             /*#__PURE__*/React.createElement("thead", { className: "bg-[#003876] text-white sticky top-0 z-10" },
               /*#__PURE__*/React.createElement("tr", null,
@@ -6019,7 +6025,7 @@ function App() {
                   return dir * ((a[k] || 0) - (b[k] || 0));
                 });
                 return sorted.map((br, idx) => /*#__PURE__*/React.createElement("tr", { key: idx, className: "hover:bg-blue-50" },
-                  /*#__PURE__*/React.createElement("td", { className: "p-2 font-bold text-slate-800" }, br.name),
+                  /*#__PURE__*/React.createElement("td", { className: "p-2 font-bold text-slate-800" }, /*#__PURE__*/React.createElement("span", { className: "text-[9px] font-bold text-slate-400 mr-1.5 tabular-nums" }, (idx + 1) + "."), br.name),
                   /*#__PURE__*/React.createElement("td", { className: "p-2 text-right font-bold text-[#003876]" }, formatNum(br.cyB)),
                   /*#__PURE__*/React.createElement("td", { className: "p-2 text-right text-slate-500" }, br.lyB > 0 ? "\u0E3F" + formatNum(br.lyB) : "\u2013"),
                   /*#__PURE__*/React.createElement("td", { className: "p-2 text-center" },
