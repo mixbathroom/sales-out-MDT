@@ -1854,6 +1854,7 @@ function App() {
         mall: r.Name,
         size: branchSizeMap[r.สาขา],
         sap: String(r.SAP || r[' SAP '] || r['SAP '] || r[' SAP'] || '').trim().replace(/\.0+$/, ''),
+        pcSup: String(r['PC Sup'] || r['Sup'] || '').trim(),
         modelPC: extractPcValue(r, 'model') || '-',
         actualPC: extractPcValue(r, 'actual') || '-',
         missingPC: extractPcValue(r, 'missing') || '-'
@@ -1874,6 +1875,7 @@ function App() {
         mall: rb.mall,
         size: rb.size,
         sap: rb.sap,
+        pcSup: rb.pcSup,
         modelPC: rb.modelPC,
         actualPC: rb.actualPC,
         missingPC: rb.missingPC,
@@ -4797,7 +4799,7 @@ function App() {
         const modelPC  = parseFloat(row.modelPC)  || 0;
         const hasPC   = actualPC > 0;
         const tier    = sales < 150000 ? 'low' : sales <= 300000 ? 'mid' : 'high';
-        return { branch: row.branch, mall: row.mall, size: row.size, sap: row.sap, sales, ach, actualPC, modelPC, hasPC, tier };
+        return { branch: row.branch, mall: row.mall, size: row.size, sap: row.sap, pcSup: row.pcSup || '', sales, ach, actualPC, modelPC, hasPC, tier };
       });
 
       const hasPCList = allBranches.filter(b => b.hasPC);
@@ -5185,6 +5187,7 @@ function App() {
               if(!window.XLSX){ alert('กำลังโหลดไลบรารี Excel กรุณาลองใหม่อีกครั้งในอีกสักครู่'); return; }
               const rows = filtered.map(b=>({
                 'ชื่อสาขา': b.branch,
+                'PC Sup': b.pcSup||'',
                 'ห้าง': b.mall,
                 'รหัสสาขา (SAP)': b.sap || '',
                 'ขนาดสาขา': b.size || '',
@@ -5196,7 +5199,7 @@ function App() {
                 'Ach%': b.ach>0 ? Math.round(b.ach) : ''
               }));
               const ws = window.XLSX.utils.json_to_sheet(rows);
-              ws['!cols'] = [{wch:28},{wch:14},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:14},{wch:8}];
+              ws['!cols'] = [{wch:28},{wch:20},{wch:14},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:14},{wch:8}];
               const wb = window.XLSX.utils.book_new();
               window.XLSX.utils.book_append_sheet(wb, ws, 'PC Analysis');
               const fname = 'PC_Analysis_'+selectedMonth+'_'+selectedYear+'.xlsx';
@@ -5207,15 +5210,16 @@ function App() {
             /*#__PURE__*/React.createElement("table",{style:{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}},
               /*#__PURE__*/React.createElement("thead",null,
                 /*#__PURE__*/React.createElement("tr",{style:{background:'#0f2440',position:'sticky',top:0,zIndex:1}},
-                  [{h:'ชื่อสาขา',a:'left',hl:false,w:'24%'},{h:'ห้าง',a:'left',hl:false,w:'9%'},{h:'SAP',a:'center',hl:false,w:'7%'},{h:'Size',a:'center',hl:false,w:'6%'},{h:'PC',a:'center',hl:false,w:'8%'},{h:'Model / Act.',a:'center',hl:true,w:'10%'},{h:'ยอด/หัว PC (บาท)',a:'right',hl:true,w:'12%',sk:'perPC'},{h:'ยอดขาย (บาท)',a:'right',hl:false,w:'13%',sk:'sales'},{h:'Ach%',a:'right',hl:false,w:'11%',sk:'ach'}
+                  [{h:'ชื่อสาขา',a:'left',hl:false,w:'16%'},{h:'PC Sup',a:'left',hl:false,w:'12%'},{h:'ห้าง',a:'left',hl:false,w:'7%'},{h:'SAP',a:'center',hl:false,w:'6%'},{h:'Size',a:'center',hl:false,w:'6%'},{h:'PC',a:'center',hl:false,w:'8%'},{h:'Model / Act.',a:'center',hl:true,w:'10%'},{h:'ยอด/หัว PC (บาท)',a:'right',hl:true,w:'12%',sk:'perPC'},{h:'ยอดขาย (บาท)',a:'right',hl:false,w:'12%',sk:'sales'},{h:'Ach%',a:'right',hl:false,w:'11%',sk:'ach'}
                   ].map((col,i)=>/*#__PURE__*/React.createElement("th",{key:i,onClick:col.sk?()=>setPcListSort(s=>({key:col.sk,dir:s.key===col.sk&&s.dir==='desc'?'asc':'desc'})):undefined,style:{fontSize:12,fontWeight:700,color:pcListSort.key===col.sk?'#60a5fa':(col.hl?'#fbbf24':'#64748b'),textAlign:col.a,padding:col.h==='Ach%'?'5px 24px 5px 8px':'5px 8px',borderBottom:'1px solid rgba(255,255,255,.07)',whiteSpace:'nowrap',width:col.w,background:col.hl?'rgba(251,191,36,.06)':undefined,borderLeft:col.hl?'2px solid rgba(251,191,36,.35)':undefined,borderRight:col.hl?'2px solid rgba(251,191,36,.35)':undefined,cursor:col.sk?'pointer':'default',userSelect:'none'}},col.h,col.sk?(pcListSort.key===col.sk?(pcListSort.dir==='desc'?' \u25BC':' \u25B2'):' \u21C5'):''))
                 )
               ),
               /*#__PURE__*/React.createElement("tbody",null,
                 filtered.length===0
-                  ? /*#__PURE__*/React.createElement("tr",null,/*#__PURE__*/React.createElement("td",{colSpan:9,style:{textAlign:'center',color:'#475569',padding:'20px',fontSize:13}},"ไม่พบสาขาตามเงื่อนไขที่เลือก"))
+                  ? /*#__PURE__*/React.createElement("tr",null,/*#__PURE__*/React.createElement("td",{colSpan:10,style:{textAlign:'center',color:'#475569',padding:'20px',fontSize:13}},"ไม่พบสาขาตามเงื่อนไขที่เลือก"))
                   : filtered.map((b,idx)=>/*#__PURE__*/React.createElement("tr",{key:b.branch,style:{borderBottom:'1px solid rgba(255,255,255,.04)',background:idx%2===0?'transparent':'rgba(255,255,255,.02)'}},
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:13,fontWeight:700,color:'#e2e8f0'}},b.branch),
+                      /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:12,color:'#94a3b8'}},b.pcSup||'—'),
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:12,color:'#94a3b8'}},b.mall),
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:10,color:'rgba(148,163,184,.55)',textAlign:'center'}},b.sap||'—'),
                       /*#__PURE__*/React.createElement("td",{style:{padding:'5px 8px',fontSize:12,color:'#94a3b8',textAlign:'center'}},b.size||'—'),
