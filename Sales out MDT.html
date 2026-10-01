@@ -16774,7 +16774,8 @@ function App() {
 
     if (tab === 9) {
       const mallNames = filterOptions && filterOptions.malls ? filterOptions.malls : [...new Set(data.map(d => d.Name))].filter(Boolean).sort();
-      const yearData = data.filter(d => d.Year === selectedYear);
+      // ใช้ข้อมูลยี่กรองตามตัวกรองทั้งหมด (ห้าง/สาขา/ขนาดสาขา/DoHome type)
+      const yearData = currentFiltered.filter(d => d.Year === selectedYear);
       const allMonths = MONTH_ORDER;
 
       const mallSummary = mallNames.map(mall => {
