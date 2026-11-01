@@ -601,10 +601,11 @@ body.sx-present .sx-slide:not(.sx-extra) .sx-cap{border:0!important;border-radiu
 .lg-bars b{display:block;width:36px;border-radius:5px 5px 0 0;transform-origin:50% 100%;transform:scaleY(0)}
 .lg-bars b{animation:lgBar .7s ease-out forwards;will-change:transform}
 .lg-bars b:nth-child(1){height:43px;background:#dc3b3b;animation-delay:.1s}
-.lg-bars b:nth-child(2){height:67px;background:#f0c22e;animation-delay:.4s}
-.lg-bars b:nth-child(3){height:96px;background:#2c9a4c;animation-delay:.7s}
-.lg-bars b:nth-child(4){height:60px;background:#1f5fd6;animation-delay:1s}
-.lg-bars b:nth-child(5){height:81px;background:#5aa7e0;animation-delay:1.3s}
+.lg-bars b:nth-child(2){height:67px;background:#f0c22e;animation-delay:.55s}
+.lg-bars b:nth-child(3){height:96px;background:#2c9a4c;animation-delay:1s}
+.lg-bars b:nth-child(4){height:60px;background:#1f5fd6;animation-delay:1.45s}
+.lg-bars b:nth-child(5){height:81px;background:#5aa7e0;animation-delay:1.9s}
+.lg-bars b:nth-child(n+2){animation-duration:.9s}
 @keyframes lgBar{0%{transform:scaleY(0)}60%{transform:scaleY(1.12)}80%{transform:scaleY(.96)}100%{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){.lg-bars b{animation:none;transform:none}}
 .lg-shake{animation:lgShake .4s}
