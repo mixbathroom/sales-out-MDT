@@ -703,6 +703,15 @@ body.sx-present .sx-slide:not(.sx-extra) .sx-cap{border:0!important;border-radiu
     return H.map(function(x){return('00000000'+(x>>>0).toString(16)).slice(-8);}).join('');
   }
 
+  /* เผื่อผู้ใช้พิมพ์รหัส (ตัวเลข) ตอนสลับเป็นภาษาไทยค้างไว้ (คีย์บอร์ด Kedmanee):
+     แป้นตัวเลขแถวบนแบบไม่กด Shift จะพิมพ์เป็นอักษรไทยแทน เราจึงแปลงกลับเป็นตัวเลขก่อนตรวจสอบ */
+  var KED_TH2NUM={'ๅ':'1','/':'2','-':'3','ภ':'4','ถ':'5','ุ':'6','ึ':'7','ค':'8','ต':'9','จ':'0'};
+  function deThaify(s){
+    var out='';
+    for(var i=0;i<s.length;i++){var c=s[i];out+=KED_TH2NUM.hasOwnProperty(c)?KED_TH2NUM[c]:c;}
+    return out;
+  }
+
   var form=document.getElementById('lg-form'),pw=document.getElementById('lg-pw'),
       box=document.getElementById('lg-pwbox'),msg=document.getElementById('lg-msg'),
       btn=document.getElementById('lg-btn'),rem=document.getElementById('lg-rem'),
@@ -717,7 +726,9 @@ body.sx-present .sx-slide:not(.sx-extra) .sx-cap{border:0!important;border-radiu
     btn.disabled=true;
     setTimeout(function(){
       btn.disabled=false;
-      if(sha256(pw.value)===PASS_HASH){
+      var typed=pw.value,normalized=deThaify(typed);
+      var okPass=sha256(typed)===PASS_HASH||(normalized!==typed&&sha256(normalized)===PASS_HASH);
+      if(okPass){
         if(rem.checked){try{localStorage.setItem(SKEY,PASS_HASH+'|'+(Date.now()+DAYS*86400000));}catch(e){try{sessionStorage.setItem(SKEY,PASS_HASH);}catch(e2){}}}else{try{localStorage.removeItem(SKEY);}catch(e){}}
         try{if(window.PasswordCredential&&navigator.credentials&&navigator.credentials.store){navigator.credentials.store(new PasswordCredential({id:document.getElementById('lg-user').value,password:pw.value,name:'Sales Out MDT'}));}}catch(e){}
         unlock(false);setTimeout(function(){pw.value='';},2000);
