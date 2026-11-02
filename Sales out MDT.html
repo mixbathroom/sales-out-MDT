@@ -22451,17 +22451,22 @@ async function ghErr(r){var m='';try{m=(await r.json()).message||''}catch(e){}
   if(r.status===403||r.status===404)return new Error('Token ไม่มีสิทธิ์เขียน repo นี้ (ตรวจสิทธิ์ Contents: Read and write และชื่อ repo) '+m);
   return new Error('GitHub ตอบกลับผิดพลาด ('+r.status+') '+m)}
 function gh(cfg,path,method,body,accept){var h={'Authorization':'Bearer '+cfg.token,'Accept':accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};if(body)h['Content-Type']='application/json';
-  return fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+path,{method:method||'GET',headers:h,body:body?JSON.stringify(body):undefined})}
+  return fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+path,{method:method||'GET',headers:h,body:body?JSON.stringify(body):undefined,cache:'no-store'})}
 D.ghGet=async function(cfg,file){var r=await gh(cfg,'/contents/'+file+'?ref='+encodeURIComponent(cfg.branch),'GET',null,'application/vnd.github.raw+json');if(r.status===404)return null;if(!r.ok)throw await ghErr(r);return r.text()};
 D.ghPut=async function(cfg,file,text,msg){
-  for(var t=0;t<3;t++){
+  var last='';
+  for(var t=0;t<6;t++){
     var sha=null,r0=await gh(cfg,'/contents/'+file+'?ref='+encodeURIComponent(cfg.branch));
     if(r0.ok)sha=(await r0.json()).sha;else if(r0.status!==404)throw await ghErr(r0);
     var body={message:msg,content:b64(new TextEncoder().encode(text)),branch:cfg.branch};if(sha)body.sha=sha;
     var r=await gh(cfg,'/contents/'+file,'PUT',body);
-    if(r.ok)return true; if(r.status===409||r.status===422){await new Promise(function(f){setTimeout(f,800)});continue}
+    if(r.ok)return true;
+    if(r.status===409||r.status===422||r.status===403||r.status===429){
+      try{last=(await r.json()).message||''}catch(e){}
+      if(r.status===403&&!/rate|abuse|secondary/i.test(last))throw await ghErr({status:403,json:async()=>({message:last})});
+      await new Promise(function(f){setTimeout(f,1500*(t+1))});continue}
     throw await ghErr(r);
-  } throw new Error('บันทึกไฟล์ '+file+' ไม่สำเร็จ ลองใหม่อีกครั้ง')};
+  } throw new Error('บันทึกไฟล์ '+file+' ไม่สำเร็จ (GitHub ตอบ: '+(last||'ไม่ทราบสาเหตุ')+') ลองกดอีกครั้งหลังรอสักครู่')};
 D.setup=async function(cfg,pw){var blob=await D.encryptCfg(cfg,pw);await D.ghPut(cfg,'data/auth.json',JSON.stringify(blob),'Setup admin');return true};
 D.loadCfg=async function(pw,def){
   var blob=null;
@@ -22473,6 +22478,7 @@ D.adminPublish=async function(p,pw,def){
   var cfg=await D.loadCfg(pw,def);
   var data={v:1,key:p.key,year:p.year,month:p.month,ver:Date.now(),rows:p.rows.map(toArr)};
   await D.ghPut(cfg,'data/m-'+p.key+'.json',JSON.stringify(data),'Update '+p.key);
+  await new Promise(function(f){setTimeout(f,2000)});
   var idx={keys:[]};try{var t=await D.ghGet(cfg,'data/index.json');if(t)idx=JSON.parse(t)}catch(e){}
   if(!idx.keys)idx.keys=[];if(idx.keys.indexOf(p.key)<0)idx.keys.push(p.key);idx.keys.sort();idx.updated=Date.now();
   await D.ghPut(cfg,'data/index.json',JSON.stringify(idx),'Update index');
