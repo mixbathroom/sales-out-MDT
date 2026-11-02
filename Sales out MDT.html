@@ -15028,6 +15028,25 @@ function DevUploadPage() {
     try { setP(await D.parse(f)); } catch (e) { setMsg({ t: 'err', m: e.message }); }
     setBusy(false);
   };
+  const doDownload = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const html = await D.buildHtml(p);
+      const fname = 'Sales out MDT.html';
+      let done = false;
+      try {
+        const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+        if (dl) { await dl.save({ filename: fname, data: html }); done = true; }
+      } catch (e) { if (e && e.code === 'declined') { setBusy(false); return; } }
+      if (!done) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+      }
+      setMsg({ t: 'ok', m: 'สร้างไฟล์ "' + fname + '" ที่มีข้อมูลเดือน ' + p.month + ' ' + p.year + ' แล้ว นำไปวางทับไฟล์เดิมใน GitHub (Add file > Upload files) แล้วกด Commit' });
+    } catch (e) { setMsg({ t: 'err', m: e.message || 'สร้างไฟล์ไม่สำเร็จ' }); }
+    setBusy(false);
+  };
   const doApply = async share => {
     setBusy(true); setMsg(null);
     D.local[p.key] = { ver: Date.now(), rows: p.rows, year: p.year, month: p.month };
@@ -15057,7 +15076,8 @@ function DevUploadPage() {
       p.warnings.map((w, i) => h('div', { key: i, style: { fontSize: 13, color: '#b45309' } }, '⚠ ' + w)),
       h('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 } },
         h('button', { type: 'button', disabled: busy || !canShare, onClick: () => doApply(true), style: btn('#005AAB', busy || !canShare) }, 'อัปเดตแดชบอร์ด (ทุกคนเห็น)'),
-        h('button', { type: 'button', disabled: busy, onClick: () => doApply(false), style: btn('#475569', busy) }, 'ดูเฉพาะเครื่องนี้'))));
+        h('button', { type: 'button', disabled: busy, onClick: () => doApply(false), style: btn('#475569', busy) }, 'ดูเฉพาะเครื่องนี้'),
+        h('button', { type: 'button', disabled: busy, onClick: doDownload, style: btn('#0f766e', busy) }, 'ดาวน์โหลดแดชบอร์ดฉบับอัปเดต (สำหรับ GitHub)'))));
 }
 
 function App() {
@@ -22324,7 +22344,8 @@ var SXS = (function () {
 (function(){
 var HDR=['PC Sup','จังหวัด','รหัสห้าง','Code ID','SAP','Name','สาขา','Month','Year','เป้าการขาย','Beger','Toa','ICI','Jotun','Captain','Nippon','RTB','Delta','Turbo','Pammastic','JBP','Sunke','Woodtect','Iloft','Loft8','TPI','Worldpaint','Total','ภูมิภาค','ModelPC','ActualPC','MissingPC'];
 var BR=HDR.slice(10,27), SHEET='ยอดแผนกสี IT MDT', NEED=HDR.slice(0,10);
-var D=window.DevData={state:{db:false,canEdit:false,ready:false},shared:{},local:{},map:{},listeners:[],_sig:''};
+var D=window.DevData={state:{db:false,canEdit:false,ready:false},shared:{},local:{},embedded:{},map:{},listeners:[],_sig:''};
+try{var EM=window.__EMBED_MONTHS||{};Object.keys(EM).forEach(function(k){var e=EM[k];D.embedded[k]={ver:e.ver,year:e.year,month:e.month,rows:e.rows.map(function(arr){var o={};HDR.forEach(function(h,i){o[h]=arr[i]==null?'':arr[i]});return o})}})}catch(e){}
 function emit(){D.listeners.forEach(function(f){try{f()}catch(e){}})}
 D.sub=function(f){D.listeners.push(f);return function(){D.listeners=D.listeners.filter(function(x){return x!==f})}};
 function ensureX(){return new Promise(function(res,rej){if(window.XLSX)return res();var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=function(){res()};s.onerror=function(){rej(new Error('โหลดตัวอ่านไฟล์ Excel ไม่สำเร็จ'))};document.body.appendChild(s)})}
@@ -22375,8 +22396,21 @@ D.parse=async function(file){
   return {key:key,year:kept[0].Year,month:kept[0].Month,rows:kept,warnings:w,
     stats:{count:kept.length,beger:bs,target:tg,newSap:Object.keys(newS).length,exists:!!(window.__salesRaw||[]).some(function(r){return r.Year+'-'+r.Month===key})}};
 };
+D.buildHtml=async function(p){
+  var OP='<scr'+'ipt id="',CL='</scr'+'ipt>';
+  var src;
+  try{var r=await fetch(location.href,{cache:'no-store'});if(!r.ok)throw 0;src=await r.text()}catch(e){throw new Error('อ่านไฟล์ต้นฉบับไม่ได้ (ใช้ปุ่มนี้ได้เมื่อเปิดจากเว็บ GitHub Pages ไม่ใช่ไฟล์ในเครื่อง)')}
+  var tagDev=OP+'dev-upload-js">',tagEmb=OP+'dev-embedded-data">';
+  var i=src.indexOf(tagDev);if(i<0)throw new Error('ไฟล์ต้นฉบับไม่ใช่ฉบับที่มีเมนูนักพัฒนา');
+  var e0=src.indexOf(tagEmb);
+  if(e0>=0&&e0<i){var e1=src.indexOf(CL,e0);if(e1>=0){src=src.slice(0,e0)+src.slice(e1+CL.length).replace(/^\s+/,'');i=src.indexOf(tagDev)}}
+  var all={},k;for(k in D.map)all[k]=D.map[k];all[p.key]={ver:Date.now(),year:p.year,month:p.month,rows:p.rows};
+  var out={};Object.keys(all).forEach(function(key){var e=all[key];out[key]={ver:e.ver,year:e.year,month:e.month,rows:e.rows.map(function(o){return HDR.map(function(h){return o[h]})})}});
+  var js=tagEmb+'window.__EMBED_MONTHS='+JSON.stringify(out).replace(/</g,'\\u003c')+';'+CL+'\n';
+  return src.slice(0,i)+js+src.slice(i);
+};
 D.applyAll=function(){
-  var m={},k;for(k in D.shared)m[k]=D.shared[k];for(k in D.local)m[k]=D.local[k];
+  var m={},k;for(k in D.embedded)m[k]=D.embedded[k];for(k in D.shared)m[k]=D.shared[k];for(k in D.local)m[k]=D.local[k];
   var sig=Object.keys(m).sort().map(function(k){return k+':'+m[k].ver}).join('|');
   if(sig===D._sig)return; D._sig=sig;D.map=m;
   if(window.__applyOverrides)window.__applyOverrides(m);
