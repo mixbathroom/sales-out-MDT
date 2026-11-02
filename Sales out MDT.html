@@ -15080,7 +15080,7 @@ function App() {
     const defaultData = parseCSVData(MOCK_CSV_DATA);
     setData(canonicalizeBranches(defaultData));
     updateFilters(defaultData);
-    if (typeof window !== 'undefined' && window.__idbGet) {
+    if (typeof window !== 'undefined' && window.__idbGet && false /* ใช้ข้อมูลที่ฝังในไฟล์เป็นหลักเสมอ ไม่ดึงข้อมูลเก่าจากเบราว์เซอร์ */) {
       window.__idbGet('bgr_sales_data_v1').then(function(saved){
         if (saved && saved.length) {
           setData(canonicalizeBranches(saved));
