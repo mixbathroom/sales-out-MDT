@@ -15017,7 +15017,12 @@ function DevUploadPage() {
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [pw, setPw] = useState('');
+  const SKEY = 'bgr_admin_pw';
+  const readSaved = () => { try { return window.localStorage.getItem(SKEY) || ''; } catch (e) { return ''; } };
+  const [saved, setSaved] = useState(readSaved);
+  const [pw, setPw] = useState(readSaved);
+  const savePw = () => { try { window.localStorage.setItem(SKEY, pw); setSaved(pw); setMsg({ t: 'ok', m: 'บันทึกรหัสผู้ดูแลไว้ในเครื่องนี้แล้ว ครั้งหน้าไม่ต้องพิมพ์ใหม่' }); } catch (e) { setMsg({ t: 'err', m: 'บันทึกรหัสในเครื่องนี้ไม่ได้ (เบราว์เซอร์ไม่อนุญาต)' }); } };
+  const forgetPw = () => { try { window.localStorage.removeItem(SKEY); } catch (e) {} setSaved(''); setPw(''); setMsg({ t: 'ok', m: 'ลบรหัสผู้ดูแลที่จำไว้ในเครื่องนี้แล้ว' }); };
   const [cfg, setCfg] = useState({ token: '', pw: '', pw2: '', owner: 'mixbathroom', repo: 'sales-out-MDT', branch: 'main' });
   useEffect(() => window.DevData.sub(() => tick(x => x + 1)), []);
   const D = window.DevData;
@@ -15039,7 +15044,7 @@ function DevUploadPage() {
       await D.adminPublish(p, pw, def);
       delete D.local[p.key]; D.applyAll();
       setMsg({ t: 'ok', m: 'บันทึกขึ้น GitHub สำเร็จ ทุกคนจะเห็นข้อมูลเดือน ' + p.month + ' ' + p.year + ' ภายใน 1-2 นาที (ให้รีเฟรชหน้า)' });
-      setPw('');
+      setPw(saved || '');
     } catch (e) { setMsg({ t: 'err', m: e.message || 'บันทึกไม่สำเร็จ' }); }
     setBusy(false);
   };
@@ -15050,7 +15055,7 @@ function DevUploadPage() {
   };
   const doSetup = async () => {
     if (!cfg.token.trim()) { setMsg({ t: 'err', m: 'ใส่ GitHub Token ก่อน' }); return; }
-    if (cfg.pw.length < 8) { setMsg({ t: 'err', m: 'รหัสผู้ดูแลต้องยาวอย่างน้อย 8 ตัว (แนะนำ 12 ตัวขึ้นไป)' }); return; }
+    if (cfg.pw.length < 12) { setMsg({ t: 'err', m: 'รหัสผู้ดูแลต้องยาวอย่างน้อย 12 ตัว' }); return; }
     if (cfg.pw !== cfg.pw2) { setMsg({ t: 'err', m: 'รหัสผู้ดูแลสองช่องไม่ตรงกัน' }); return; }
     setBusy(true); setMsg(null);
     try {
@@ -15078,6 +15083,12 @@ function DevUploadPage() {
       p.warnings.map((w, i) => h('div', { key: i, style: { fontSize: 13, color: '#b45309' } }, '⚠ ' + w)),
       h('div', { style: { fontSize: 14, fontWeight: 800, margin: '14px 0 4px' } }, '2) ใส่รหัสผู้ดูแล แล้วกดอัปเดต'),
       h('input', { type: 'password', autoComplete: 'off', placeholder: 'รหัสผู้ดูแล', value: pw, onChange: e => setPw(e.target.value), onKeyDown: e => { if (e.key === 'Enter' && !busy) doPublish(); }, style: inp }),
+      h('div', { style: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 8, fontSize: 12 } },
+        saved && saved === pw
+          ? [h('span', { key: 's', style: { color: '#047857', fontWeight: 700 } }, '✔ จำรหัสไว้ในเครื่องนี้แล้ว'),
+             h('button', { key: 'f', type: 'button', onClick: forgetPw, style: { background: 'none', border: 0, color: '#b91c1c', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 } }, 'ลืมรหัสในเครื่องนี้')]
+          : [h('button', { key: 'sv', type: 'button', disabled: !pw, onClick: savePw, style: { background: '#e2e8f0', border: 0, borderRadius: 8, padding: '6px 12px', fontWeight: 700, fontSize: 12, cursor: pw ? 'pointer' : 'not-allowed', color: '#0f172a' } }, 'บันทึกรหัสในเครื่องนี้'),
+             h('span', { key: 'n', style: { color: '#64748b' } }, 'ใช้เฉพาะเครื่องส่วนตัวเท่านั้น')]),
       h('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 } },
         h('button', { type: 'button', disabled: busy || !pw, onClick: doPublish, style: btn('#005AAB', busy || !pw) }, 'อัปเดตแดชบอร์ด (ทุกคนเห็น)'),
         h('button', { type: 'button', disabled: busy, onClick: doLocal, style: btn('#475569', busy) }, 'ดูเฉพาะเครื่องนี้'))),
