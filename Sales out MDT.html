@@ -15017,53 +15017,55 @@ function DevUploadPage() {
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pw, setPw] = useState('');
+  const [cfg, setCfg] = useState({ token: '', pw: '', pw2: '', owner: 'mixbathroom', repo: 'sales-out-MDT', branch: 'main' });
   useEffect(() => window.DevData.sub(() => tick(x => x + 1)), []);
-  const D = window.DevData, S = D.state;
-  const canShare = S.db && S.canEdit;
+  const D = window.DevData;
   const fmt = n => Math.round(n).toLocaleString('en-US');
   const card = { background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,.18)', color: '#0f172a' };
+  const inp = { width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' };
+  const lab = { fontSize: 12, fontWeight: 700, color: '#475569', margin: '10px 0 4px' };
   const btn = (bg, dis) => ({ background: dis ? '#94a3b8' : bg, color: '#fff', border: 0, borderRadius: 10, padding: '12px 20px', fontWeight: 800, fontSize: 15, cursor: dis ? 'not-allowed' : 'pointer' });
+  const def = { owner: cfg.owner, repo: cfg.repo, branch: cfg.branch };
   const onFile = async f => {
     if (!f) return; setBusy(true); setMsg(null); setP(null);
     try { setP(await D.parse(f)); } catch (e) { setMsg({ t: 'err', m: e.message }); }
     setBusy(false);
   };
-  const doDownload = async () => {
+  const doPublish = async () => {
+    if (!pw) { setMsg({ t: 'err', m: 'ใส่รหัสผู้ดูแลก่อน' }); return; }
     setBusy(true); setMsg(null);
     try {
-      const html = await D.buildHtml(p);
-      const fname = 'Sales out MDT.html';
-      let done = false;
-      try {
-        const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-        if (dl) { await dl.save({ filename: fname, data: html }); done = true; }
-      } catch (e) { if (e && e.code === 'declined') { setBusy(false); return; } }
-      if (!done) {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-        a.download = fname; document.body.appendChild(a); a.click(); a.remove();
-      }
-      setMsg({ t: 'ok', m: 'สร้างไฟล์ "' + fname + '" ที่มีข้อมูลเดือน ' + p.month + ' ' + p.year + ' แล้ว นำไปวางทับไฟล์เดิมใน GitHub (Add file > Upload files) แล้วกด Commit' });
-    } catch (e) { setMsg({ t: 'err', m: e.message || 'สร้างไฟล์ไม่สำเร็จ' }); }
+      await D.adminPublish(p, pw, def);
+      delete D.local[p.key]; D.applyAll();
+      setMsg({ t: 'ok', m: 'บันทึกขึ้น GitHub สำเร็จ ทุกคนจะเห็นข้อมูลเดือน ' + p.month + ' ' + p.year + ' ภายใน 1-2 นาที (ให้รีเฟรชหน้า)' });
+      setPw('');
+    } catch (e) { setMsg({ t: 'err', m: e.message || 'บันทึกไม่สำเร็จ' }); }
     setBusy(false);
   };
-  const doApply = async share => {
-    setBusy(true); setMsg(null);
+  const doLocal = () => {
     D.local[p.key] = { ver: Date.now(), rows: p.rows, year: p.year, month: p.month };
     D.applyAll();
-    if (!share) { setMsg({ t: 'ok', m: 'แสดงข้อมูลเดือน ' + p.month + ' ' + p.year + ' ในแดชบอร์ดแล้ว (เฉพาะเครื่องนี้ จะหายเมื่อรีเฟรช)' }); setBusy(false); return; }
+    setMsg({ t: 'ok', m: 'แสดงข้อมูลเดือน ' + p.month + ' ' + p.year + ' ในแดชบอร์ดแล้ว (เฉพาะเครื่องนี้ จะหายเมื่อรีเฟรช)' });
+  };
+  const doSetup = async () => {
+    if (!cfg.token.trim()) { setMsg({ t: 'err', m: 'ใส่ GitHub Token ก่อน' }); return; }
+    if (cfg.pw.length < 8) { setMsg({ t: 'err', m: 'รหัสผู้ดูแลต้องยาวอย่างน้อย 8 ตัว (แนะนำ 12 ตัวขึ้นไป)' }); return; }
+    if (cfg.pw !== cfg.pw2) { setMsg({ t: 'err', m: 'รหัสผู้ดูแลสองช่องไม่ตรงกัน' }); return; }
+    setBusy(true); setMsg(null);
     try {
-      await D.publish(p); delete D.local[p.key];
-      setMsg({ t: 'ok', m: 'อัปเดตสำเร็จ ทุกคนที่เปิดแดชบอร์ดจะเห็นข้อมูลเดือน ' + p.month + ' ' + p.year + ' ทันที' });
-    } catch (e) { setMsg({ t: 'err', m: 'บันทึกแบบร่วมไม่สำเร็จ (' + (e.message || e.code) + ') ตอนนี้แสดงเฉพาะเครื่องนี้' }); }
+      await D.setup({ token: cfg.token.trim(), owner: cfg.owner.trim(), repo: cfg.repo.trim(), branch: cfg.branch.trim() || 'main' }, cfg.pw);
+      setCfg(c => ({ ...c, token: '', pw: '', pw2: '' }));
+      setMsg({ t: 'ok', m: 'ตั้งค่าสำเร็จ รอ 1-2 นาทีให้ GitHub อัปเดต แล้วเริ่มอัปโหลดข้อมูลได้เลย' });
+    } catch (e) { setMsg({ t: 'err', m: e.message || 'ตั้งค่าไม่สำเร็จ' }); }
     setBusy(false);
   };
+  const set = k => e => setCfg(c => ({ ...c, [k]: e.target.value }));
   return h('div', { style: { maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 } },
     h('div', { style: { color: '#fff' } }, h('div', { style: { fontSize: 26, fontWeight: 900 } }, 'นักพัฒนา · อัปเดตข้อมูลรายเดือน'),
-      h('div', { style: { opacity: .75, fontSize: 13, marginTop: 4 } }, 'อัปโหลดไฟล์ Excel แล้วระบบจะอ่านเฉพาะแท็บ "ยอดแผนกสี IT MDT" และแสดงเป็นเดือนล่าสุดทันที')),
+      h('div', { style: { opacity: .75, fontSize: 13, marginTop: 4 } }, 'อัปโหลดไฟล์ Excel (อ่านเฉพาะแท็บ "ยอดแผนกสี IT MDT") แล้วใส่รหัสผู้ดูแลเพื่อให้ทุกคนเห็นข้อมูลใหม่')),
     h('div', { style: card },
-      h('div', { style: { fontSize: 12, marginBottom: 12, color: canShare ? '#047857' : '#b45309', fontWeight: 700 } },
-        !S.ready ? 'กำลังตรวจสอบการเชื่อมต่อ…' : canShare ? '● พร้อมอัปเดตให้ทุกคน' : S.db ? '● บัญชีนี้ไม่มีสิทธิ์แก้ไข จึงอัปเดตได้เฉพาะเครื่องนี้' : '● ไม่ได้เชื่อมต่อข้อมูลร่วม (เปิดผ่านลิงก์สาธารณะ/ยังไม่ล็อกอิน) อัปเดตได้เฉพาะเครื่องนี้'),
+      h('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 10 } }, '1) เลือกไฟล์ Excel'),
       h('input', { type: 'file', accept: '.xlsx,.xlsm', disabled: busy, onChange: e => { onFile(e.target.files[0]); e.target.value = ''; }, style: { fontSize: 14 } }),
       busy && h('div', { style: { marginTop: 10, fontSize: 13 } }, 'กำลังประมวลผล…')),
     msg && h('div', { style: { ...card, padding: 16, background: msg.t === 'ok' ? '#ecfdf5' : '#fef2f2', color: msg.t === 'ok' ? '#065f46' : '#991b1b', fontWeight: 700 } }, msg.m),
@@ -15074,10 +15076,25 @@ function DevUploadPage() {
           h('div', { key: l, style: { background: '#f1f5f9', borderRadius: 12, padding: 12 } }, h('div', { style: { fontSize: 11, color: '#64748b', fontWeight: 700 } }, l), h('div', { style: { fontSize: 20, fontWeight: 900, color: '#003876' } }, v)))),
       p.stats.exists && h('div', { style: { fontSize: 13, color: '#b45309', marginBottom: 8 } }, 'เดือนนี้มีข้อมูลอยู่แล้ว การอัปเดตจะแทนที่ข้อมูลเดือน ' + p.month + ' ' + p.year + ' เดิมทั้งหมด'),
       p.warnings.map((w, i) => h('div', { key: i, style: { fontSize: 13, color: '#b45309' } }, '⚠ ' + w)),
+      h('div', { style: { fontSize: 14, fontWeight: 800, margin: '14px 0 4px' } }, '2) ใส่รหัสผู้ดูแล แล้วกดอัปเดต'),
+      h('input', { type: 'password', autoComplete: 'off', placeholder: 'รหัสผู้ดูแล', value: pw, onChange: e => setPw(e.target.value), onKeyDown: e => { if (e.key === 'Enter' && !busy) doPublish(); }, style: inp }),
       h('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 } },
-        h('button', { type: 'button', disabled: busy || !canShare, onClick: () => doApply(true), style: btn('#005AAB', busy || !canShare) }, 'อัปเดตแดชบอร์ด (ทุกคนเห็น)'),
-        h('button', { type: 'button', disabled: busy, onClick: () => doApply(false), style: btn('#475569', busy) }, 'ดูเฉพาะเครื่องนี้'),
-        h('button', { type: 'button', disabled: busy, onClick: doDownload, style: btn('#0f766e', busy) }, 'ดาวน์โหลดแดชบอร์ดฉบับอัปเดต (สำหรับ GitHub)'))));
+        h('button', { type: 'button', disabled: busy || !pw, onClick: doPublish, style: btn('#005AAB', busy || !pw) }, 'อัปเดตแดชบอร์ด (ทุกคนเห็น)'),
+        h('button', { type: 'button', disabled: busy, onClick: doLocal, style: btn('#475569', busy) }, 'ดูเฉพาะเครื่องนี้'))),
+    h('details', { style: card },
+      h('summary', { style: { cursor: 'pointer', fontWeight: 800, fontSize: 14 } }, 'ตั้งค่าครั้งแรก (ผู้ดูแลระบบทำครั้งเดียว)'),
+      h('div', { style: { fontSize: 12, color: '#64748b', marginTop: 8 } }, 'ใส่ GitHub Token และตั้งรหัสผู้ดูแล ระบบจะเข้ารหัส Token ด้วยรหัสของคุณแล้วเก็บไว้ใน repo ใครไม่รู้รหัสจะอัปเดตไม่ได้'),
+      h('div', { style: lab }, 'GitHub Token'),
+      h('input', { type: 'password', autoComplete: 'off', value: cfg.token, onChange: set('token'), placeholder: 'github_pat_...', style: inp }),
+      h('div', { style: lab }, 'ตั้งรหัสผู้ดูแล (ยาว 12 ตัวขึ้นไป)'),
+      h('input', { type: 'password', autoComplete: 'new-password', value: cfg.pw, onChange: set('pw'), style: inp }),
+      h('div', { style: lab }, 'ยืนยันรหัสผู้ดูแล'),
+      h('input', { type: 'password', autoComplete: 'new-password', value: cfg.pw2, onChange: set('pw2'), style: inp }),
+      h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
+        h('div', null, h('div', { style: lab }, 'เจ้าของ repo'), h('input', { value: cfg.owner, onChange: set('owner'), style: inp })),
+        h('div', null, h('div', { style: lab }, 'ชื่อ repo'), h('input', { value: cfg.repo, onChange: set('repo'), style: inp })),
+        h('div', null, h('div', { style: lab }, 'Branch'), h('input', { value: cfg.branch, onChange: set('branch'), style: inp }))),
+      h('div', { style: { marginTop: 14 } }, h('button', { type: 'button', disabled: busy, onClick: doSetup, style: btn('#0f766e', busy) }, 'บันทึกการตั้งค่า'))));
 }
 
 function App() {
@@ -22409,8 +22426,55 @@ D.buildHtml=async function(p){
   var js=tagEmb+'window.__EMBED_MONTHS='+JSON.stringify(out).replace(/</g,'\\u003c')+';'+CL+'\n';
   return src.slice(0,i)+js+src.slice(i);
 };
+
+D.remote={};
+function toObj(arr){var o={};HDR.forEach(function(h,i){o[h]=arr[i]==null?'':arr[i]});return o}
+function toArr(o){return HDR.map(function(h){return o[h]})}
+function b64(buf){var s='',a=new Uint8Array(buf);for(var i=0;i<a.length;i+=8192)s+=String.fromCharCode.apply(null,a.subarray(i,i+8192));return btoa(s)}
+function unb64(t){var b=atob(t),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+async function pwKey(pw,salt,iter){var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+D.encryptCfg=async function(cfg,pw){var salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),it=250000;var k=await pwKey(pw,salt,it);var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},k,new TextEncoder().encode(JSON.stringify(cfg)));return {v:1,iter:it,owner:cfg.owner,repo:cfg.repo,branch:cfg.branch,salt:b64(salt),iv:b64(iv),ct:b64(ct)}};
+D.decryptCfg=async function(blob,pw){try{var k=await pwKey(pw,unb64(blob.salt),blob.iter);var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(blob.iv)},k,unb64(blob.ct));return JSON.parse(new TextDecoder().decode(pt))}catch(e){throw new Error('รหัสผู้ดูแลไม่ถูกต้อง')}};
+async function ghErr(r){var m='';try{m=(await r.json()).message||''}catch(e){}
+  if(r.status===401)return new Error('GitHub Token ไม่ถูกต้องหรือหมดอายุ');
+  if(r.status===403||r.status===404)return new Error('Token ไม่มีสิทธิ์เขียน repo นี้ (ตรวจสิทธิ์ Contents: Read and write และชื่อ repo) '+m);
+  return new Error('GitHub ตอบกลับผิดพลาด ('+r.status+') '+m)}
+function gh(cfg,path,method,body,accept){var h={'Authorization':'Bearer '+cfg.token,'Accept':accept||'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};if(body)h['Content-Type']='application/json';
+  return fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+path,{method:method||'GET',headers:h,body:body?JSON.stringify(body):undefined})}
+D.ghGet=async function(cfg,file){var r=await gh(cfg,'/contents/'+file+'?ref='+encodeURIComponent(cfg.branch),'GET',null,'application/vnd.github.raw+json');if(r.status===404)return null;if(!r.ok)throw await ghErr(r);return r.text()};
+D.ghPut=async function(cfg,file,text,msg){
+  for(var t=0;t<3;t++){
+    var sha=null,r0=await gh(cfg,'/contents/'+file+'?ref='+encodeURIComponent(cfg.branch));
+    if(r0.ok)sha=(await r0.json()).sha;else if(r0.status!==404)throw await ghErr(r0);
+    var body={message:msg,content:b64(new TextEncoder().encode(text)),branch:cfg.branch};if(sha)body.sha=sha;
+    var r=await gh(cfg,'/contents/'+file,'PUT',body);
+    if(r.ok)return true; if(r.status===409||r.status===422){await new Promise(function(f){setTimeout(f,800)});continue}
+    throw await ghErr(r);
+  } throw new Error('บันทึกไฟล์ '+file+' ไม่สำเร็จ ลองใหม่อีกครั้ง')};
+D.setup=async function(cfg,pw){var blob=await D.encryptCfg(cfg,pw);await D.ghPut(cfg,'data/auth.json',JSON.stringify(blob),'Setup admin');return true};
+D.loadCfg=async function(pw,def){
+  var blob=null;
+  try{var r=await fetch('data/auth.json?ts='+Date.now(),{cache:'no-store'});if(r.ok)blob=await r.json()}catch(e){}
+  if(!blob&&def){try{var r2=await fetch('https://raw.githubusercontent.com/'+def.owner+'/'+def.repo+'/'+def.branch+'/data/auth.json?ts='+Date.now(),{cache:'no-store'});if(r2.ok)blob=await r2.json()}catch(e){}}
+  if(!blob||!blob.ct)throw new Error('ยังไม่ได้ตั้งค่าผู้ดูแล (ทำ "ตั้งค่าครั้งแรก" ก่อน หรือรอ 1-2 นาทีหลังตั้งค่า)');
+  return D.decryptCfg(blob,pw)};
+D.adminPublish=async function(p,pw,def){
+  var cfg=await D.loadCfg(pw,def);
+  var data={v:1,key:p.key,year:p.year,month:p.month,ver:Date.now(),rows:p.rows.map(toArr)};
+  await D.ghPut(cfg,'data/m-'+p.key+'.json',JSON.stringify(data),'Update '+p.key);
+  var idx={keys:[]};try{var t=await D.ghGet(cfg,'data/index.json');if(t)idx=JSON.parse(t)}catch(e){}
+  if(!idx.keys)idx.keys=[];if(idx.keys.indexOf(p.key)<0)idx.keys.push(p.key);idx.keys.sort();idx.updated=Date.now();
+  await D.ghPut(cfg,'data/index.json',JSON.stringify(idx),'Update index');
+  D.remote[p.key]={ver:data.ver,year:p.year,month:p.month,rows:p.rows};return true};
+function loadRemote(){
+  fetch('data/index.json?ts='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(idx){
+    if(!idx||!idx.keys||!idx.keys.length)return;
+    return Promise.all(idx.keys.map(function(k){return fetch('data/m-'+k+'.json?ts='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).catch(function(){return null})})).then(function(arr){
+      arr.forEach(function(e){if(e&&e.key&&e.rows)D.remote[e.key]={ver:e.ver,year:e.year,month:e.month,rows:e.rows.map(toObj)}});
+      emit();D.applyAll()})}).catch(function(){})}
+loadRemote();
 D.applyAll=function(){
-  var m={},k;for(k in D.embedded)m[k]=D.embedded[k];for(k in D.shared)m[k]=D.shared[k];for(k in D.local)m[k]=D.local[k];
+  var m={},k;for(k in D.embedded)m[k]=D.embedded[k];for(k in D.remote)m[k]=D.remote[k];for(k in D.shared)m[k]=D.shared[k];for(k in D.local)m[k]=D.local[k];
   var sig=Object.keys(m).sort().map(function(k){return k+':'+m[k].ver}).join('|');
   if(sig===D._sig)return; D._sig=sig;D.map=m;
   if(window.__applyOverrides)window.__applyOverrides(m);
