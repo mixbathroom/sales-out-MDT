@@ -15012,7 +15012,7 @@ const MultiSelect = ({
   }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 \"", searchTerm, "\""))));
 };
 function App() {
-  const [rawData, setData] = useState([]);
+  const [rawData, setData] = useState([]); window.__salesRaw = rawData;
   const [selectedSups, setSelectedSups] = useState([]);
   const [isXlsxLoaded, setIsXlsxLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState(1);
@@ -21360,7 +21360,7 @@ ReactDOM.render(React.createElement(App), document.getElementById('root'));
     patchSupPCTable(); setTimeout(patchSupPCTable,500); setTimeout(patchSupPCTable,1200); setTimeout(patchSupPCTable,2500);
   }
   function restorePCFromStorage(){
-    if(!window.__idbGet){ applyPCStores(DEFAULT_PC_STORES); return; }
+    /* ใช้ข้อมูล PC ที่ฝังในไฟล์เป็นหลักเสมอ ไม่ดึงข้อมูลเก่าจากเบราว์เซอร์ */ applyPCStores(DEFAULT_PC_STORES); return;
     window.__idbGet('bgr_pc_stores_v1').then(function(saved){
       if(saved && Object.keys(saved).length){
         applyPCStores(saved);
@@ -22190,6 +22190,78 @@ var SXS = (function () {
   window.sxFixContrast = fix;
 })();
 
+</script>
+
+<style>
+#ie-menu{position:fixed;z-index:99999;display:none;width:230px;background:#fff;border:1px solid #cbd5e1;border-radius:14px;box-shadow:0 12px 32px rgba(15,23,42,.35);padding:0 0 8px;font-family:inherit;overflow:hidden}
+#ie-menu .ie-h{background:#0b2a5b;color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;padding:9px 14px;margin-bottom:8px}
+#ie-menu button{display:flex;align-items:center;gap:10px;width:calc(100% - 16px);margin:4px 8px 0;padding:9px 12px;border:1.5px solid transparent;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;text-align:left;transition:all .15s}
+#ie-menu button .ie-i{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;color:#fff;font-size:15px;font-weight:900}
+#ie-menu button small{display:block;font-size:11px;font-weight:600;opacity:.75}
+#ie-menu .ie-imp{background:#dcfce7;color:#166534;border-color:#86efac}
+#ie-menu .ie-imp .ie-i{background:#16a34a}
+#ie-menu .ie-imp:hover{background:#16a34a;color:#fff;border-color:#16a34a}
+#ie-menu .ie-imp:hover .ie-i{background:#fff;color:#16a34a}
+#ie-menu .ie-exp{background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+#ie-menu .ie-exp .ie-i{background:#2563eb}
+#ie-menu .ie-exp:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+#ie-menu .ie-exp:hover .ie-i{background:#fff;color:#2563eb}
+#upload-btn-label::after,#pc-btn::after{content:" \25BE";font-size:11px;opacity:.8}
+</style>
+<div id="ie-menu"></div>
+<script>
+(function(){
+  var menu=document.getElementById('ie-menu'), bypass=false;
+  function stamp(){var d=new Date();return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);}
+  function save(aoa,sheet,name){
+    if(window.XLSX){var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),sheet);XLSX.writeFile(wb,name+'.xlsx');return;}
+    var csv=aoa.map(function(r){return r.map(function(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',');}).join('\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download=name+'.csv';document.body.appendChild(a);a.click();a.remove();
+  }
+  function exportSales(){
+    var rows=window.__salesRaw||[];
+    if(!rows.length){alert('ยังไม่มีข้อมูลยอดขายให้ส่งออก');return;}
+    var cols=Object.keys(rows[0]).filter(function(k){return k.charAt(0)!=='_';});
+    var aoa=[cols].concat(rows.map(function(r){return cols.map(function(c){return r[c]==null?'':r[c];});}));
+    save(aoa,'Sales_out','Sales_out_'+stamp());
+  }
+  function exportPC(){
+    var st=window.__pcStores||{}, saps=Object.keys(st);
+    if(!saps.length){alert('ยังไม่มีข้อมูล PC ให้ส่งออก');return;}
+    var seen={},brands=[];
+    saps.forEach(function(k){Object.keys(st[k]).forEach(function(f){
+      if(f==='hang'||f==='branch')return; var b=f.replace(/_m$/,''); if(!seen[b]){seen[b]=1;brands.push(b);}});});
+    var h0=['SAP','ห้าง','สาขา'],h1=['','',''];
+    brands.forEach(function(b){h0.push(b,'');h1.push('model','actual');});
+    var aoa=[h0,h1];
+    saps.forEach(function(k){var o=st[k],r=[k,o.hang||'',o.branch||''];
+      brands.forEach(function(b){r.push(o[b+'_m']||0,o[b]||0);});aoa.push(r);});
+    save(aoa,'PC','PC_'+stamp());
+  }
+  function open(btn,title,doImport,doExport){
+    var r=btn.getBoundingClientRect();
+    menu.innerHTML='<div class="ie-h">'+title+'</div>';
+    [['ie-imp','⬆','นำเข้า (Import)','เลือกไฟล์ Excel / CSV',doImport],['ie-exp','⬇','ส่งออก (Export)','ดาวน์โหลดเป็นไฟล์ Excel',doExport]].forEach(function(it){
+      var b=document.createElement('button');b.className=it[0];
+      b.innerHTML='<span class="ie-i">'+it[1]+'</span><span>'+it[2]+'<small>'+it[3]+'</small></span>';
+      b.onclick=function(ev){ev.stopPropagation();menu.style.display='none';it[4]();};menu.appendChild(b);});
+    menu.style.top=(r.bottom+6)+'px';menu.style.left=Math.max(8,Math.min(r.left,window.innerWidth-246))+'px';menu.style.display='block';
+  }
+  document.addEventListener('click',function(e){
+    if(bypass)return;
+    var t=e.target.closest?e.target.closest('#upload-btn-label,#pc-btn,#ie-menu'):null;
+    if(!t){menu.style.display='none';return;}
+    if(t.id==='ie-menu')return;
+    e.preventDefault();e.stopPropagation();
+    if(menu.style.display==='block'&&menu._for===t.id){menu.style.display='none';return;}
+    menu._for=t.id;
+    if(t.id==='upload-btn-label'){
+      open(t,'📊 ข้อมูลยอดขาย',function(){var i=t.querySelector('input[type=file]');if(i){bypass=true;i.click();bypass=false;}},exportSales);
+    }else{
+      open(t,'👥 ข้อมูล PC',function(){var i=document.getElementById('pc-file');if(i){bypass=true;i.click();bypass=false;}},exportPC);
+    }
+  },true);
+})();
 </script>
 </body>
 </html>
