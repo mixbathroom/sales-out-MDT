@@ -16780,7 +16780,9 @@ function App() {
       }
     });
     const finalArray = [];
-    Object.values(resultMap).sort((a, b) => a.mallName.localeCompare(b.mallName)).forEach(m => {
+    const LFL_MALL_ORDER = ['Homepro', 'Hybrid', 'Megahome', 'CRC', 'โกลบอลเฮ้าส์', 'ดูโฮม', 'Homeshop', 'ศิริมหาชัย', 'HomeHub'];
+    const lflRank = n => { const i = LFL_MALL_ORDER.findIndex(x => x.toLowerCase() === String(n).trim().toLowerCase()); return i < 0 ? 999 : i; };
+    Object.values(resultMap).sort((a, b) => (lflRank(a.mallName) - lflRank(b.mallName)) || a.mallName.localeCompare(b.mallName)).forEach(m => {
       const lfl = m.LFL;
       const newB = m.New;
       lfl.numBranches = lfl.count.size;
